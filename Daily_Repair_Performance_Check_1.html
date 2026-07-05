@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Quantum Repair Performance | Fixed Condition Totals & Enhanced History</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231a6090'/><rect x='25' y='25' width='50' height='50' rx='8' fill='none' stroke='white' stroke-width='6'/><rect x='38' y='38' width='24' height='24' rx='4' fill='white'/><path d='M50 15v10M50 75v10M15 50h10M75 50h10' stroke='white' stroke-width='6' stroke-linecap='round'/></svg>">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: linear-gradient(145deg, #eef2f9 0%, #e0e7f0 100%); font-family: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif; }
+.modern-header { background: linear-gradient(110deg, #102b3b 0%, #1b4f6e 100%); padding: 0.9rem 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 8px 20px rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.header-title-group { display: flex; align-items: center; gap: 0.85rem; }
+.header-icon-wrap { width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.1rem; flex-shrink: 0; box-shadow: 0 4px 10px rgba(102, 126, 234, 0.35); }
+.header-text { display: flex; flex-direction: column; gap: 2px; }
+.header-title { color: white; font-size: 1.15rem; font-weight: 700; letter-spacing: -0.3px; line-height: 1.2; margin: 0; }
+.header-subtitle { color: rgba(255,255,255,0.7); font-size: 0.78rem; font-weight: 500; line-height: 1.2; }
+.header-file-input { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); color: white; border-radius: 20px; padding: 0.4rem 0.8rem; font-size: 0.82rem; max-width: 240px; }
+.header-file-input::file-selector-button { background: rgba(255,255,255,0.15); border: none; color: white; padding: 0.3rem 0.7rem; border-radius: 14px; margin-right: 0.5rem; cursor: pointer; font-weight: 500; }
+.glass-card { background: rgba(255,255,255,0.98); backdrop-filter: blur(2px); border: none; border-radius: 32px; box-shadow: 0 20px 35px -12px rgba(0,0,0,0.1); transition: all 0.25s ease; }
+.glass-card:hover { transform: translateY(-3px); box-shadow: 0 25px 40px -14px rgba(0,0,0,0.15); }
+.stat-card-modern { border-radius: 28px; padding: 1.4rem; color: white; position: relative; overflow: hidden; transition: transform 0.2s; cursor: default; }
+.stat-card-modern:hover { transform: translateY(-4px); }
+.stat-card-modern i { font-size: 2.8rem; opacity: 0.25; position: absolute; bottom: 12px; right: 20px; transition: all 0.3s; }
+.stat-card-modern h2 { font-weight: 800; font-size: 2.3rem; margin-bottom: 0.25rem; letter-spacing: -0.5px; }
+.bg-repair-grad { background: linear-gradient(125deg, #0f5c3a, #1f9e60); }
+.bg-harvest-grad { background: linear-gradient(125deg, #c95f0b, #f5a623); }
+.bg-sell-grad { background: linear-gradient(125deg, #3a4c62, #6c86a3); }
+.bg-total-grad { background: linear-gradient(125deg, #1f3b5c, #2c5a7a); }
+.table-modern th { background: #132e42; color: #f0f6ff; font-weight: 600; border: none; padding: 14px 12px; font-size: 0.9rem; white-space: nowrap; cursor: pointer; user-select: none; transition: background 0.2s; }
+.table-modern th:hover { background: #1a3d5a; }
+.table-modern th.other-cond-header { background: #4a6fa5; font-size: 0.78rem; padding: 10px 8px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+.table-modern td { vertical-align: middle; padding: 12px 8px; border-bottom: 1px solid #eef2f8; transition: background 0.15s; }
+.table-modern tr:hover td { background-color: #f5f9ff; }
+.sn-link { color: #1a6ea8; font-weight: 700; text-decoration: none; border-bottom: 2px solid rgba(26,110,168,0.3); cursor: pointer; transition: all 0.2s; }
+.sn-link:hover { color: #0d4b73; border-bottom-color: #0d4b73; letter-spacing: 0.2px; }
+.progress-bar-custom { flex: 1; height: 8px; background: #e2e8f0; border-radius: 12px; overflow: hidden; min-width: 70px; }
+.progress-fill { height: 100%; border-radius: 12px; transition: width 0.4s ease; }
+.filter-card { background: rgba(255,255,255,0.96); border-radius: 42px; padding: 1.2rem 1.8rem; box-shadow: 0 8px 24px rgba(0,0,0,0.05); backdrop-filter: blur(4px); }
+.btn-outline-special { border-radius: 60px; border: 1.5px solid #1a6090; color: #1a6090; background: white; transition: 0.2s; font-weight: 500; }
+.btn-outline-special:hover { background: #1a6090; color: white; transform: translateY(-2px); box-shadow: 0 6px 12px rgba(26,96,144,0.2); }
+.btn-export-conditions { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 30px; padding: 8px 20px; font-size: 0.85rem; font-weight: 600; transition: all 0.25s; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25); }
+.btn-export-conditions:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35); color: white; }
+.export-status { font-size: 0.78rem; color: #059669; font-weight: 600; margin-left: 0.75rem; opacity: 0; transition: opacity 0.3s; }
+.export-status.show { opacity: 1; }
+.tech-type-badge { font-size: 0.7rem; padding: 3px 8px; border-radius: 30px; margin-left: 8px; font-weight: 500; }
+.type-board { background: #cff4fc; color: #055160; }
+.type-regular { background: #e9ecef; color: #2c3e50; }
+.badge-category { font-size: 0.75rem; padding: 5px 10px; border-radius: 40px; font-weight: 500; }
+.comment-box { background: #f8fafc; border-radius: 16px; padding: 12px; height: 100%; border: 1px solid #e9edf2; }
+.comment-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: #5a6e7c; }
+.comment-text { font-size: 0.9rem; line-height: 1.45; color: #1e2f3e; word-break: break-word; white-space: pre-wrap; }
+.timeline-badge { background: #eef2ff; color: #1a6090; border-radius: 30px; padding: 4px 12px; font-size: 0.75rem; font-weight: 600; }
+.analytics-section { background: linear-gradient(120deg, #ffffff, #fafcff); border-radius: 28px; padding: 1.5rem; margin-top: 1.5rem; }
+.insight-badge { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; display: inline-block; }
+.summary-card { background: white; border-radius: 16px; padding: 1rem 0.8rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: all 0.25s ease; border: 2px solid transparent; height: 100%; }
+.summary-card:hover { transform: translateY(-3px); box-shadow: 0 6px 15px rgba(0,0,0,0.1); border-color: #1a6090; }
+.summary-card .summary-icon { font-size: 1.6rem; margin-bottom: 0.4rem; background: linear-gradient(135deg, #1a6090, #0f4668); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.summary-card .summary-value { font-size: 1.6rem; font-weight: 800; color: #1e2f3e; line-height: 1.2; letter-spacing: -0.5px; }
+.summary-card .summary-label { font-size: 0.75rem; color: #6c757d; font-weight: 600; margin-top: 0.3rem; text-transform: uppercase; letter-spacing: 0.5px; }
+.quick-filters-section { background: linear-gradient(120deg, #f8fafc, #eef2f9); border-radius: 24px; padding: 1rem 1.2rem; margin-top: 1rem; border: 1px solid #e2e8f0; }
+.quick-filters-label { font-size: 0.8rem; font-weight: 700; color: #4a5568; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem; }
+.quick-date-btn { background: white; border: 1.5px solid #cbd5e0; color: #2d3748; border-radius: 30px; padding: 6px 14px; font-size: 0.82rem; font-weight: 500; transition: all 0.2s ease; cursor: pointer; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+.quick-date-btn:hover { background: #edf2f7; border-color: #1a6090; color: #1a6090; transform: translateY(-1px); box-shadow: 0 3px 6px rgba(26,96,144,0.15); }
+.quick-date-btn.active { background: linear-gradient(95deg, #1a6090, #0f4668); color: white; border-color: #1a6090; box-shadow: 0 4px 10px rgba(26,96,144,0.3); }
+.quick-scroll-wrapper { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.quick-divider { width: 1px; height: 24px; background: #cbd5e0; margin: 0 6px; }
+.month-picker-group { display: flex; gap: 6px; align-items: center; }
+.month-picker-group select { border-radius: 20px; border: 1.5px solid #cbd5e0; padding: 5px 10px; font-size: 0.82rem; background: white; font-weight: 500; cursor: pointer; }
+.month-apply-btn { background: linear-gradient(95deg, #2B9B5F, #1f7a48); color: white; border: none; border-radius: 20px; padding: 6px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+.target-summary-card { background: white; border-radius: 16px; padding: 1rem 1.2rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; margin-bottom: 1rem; transition: all 0.2s; }
+.target-summary-card:hover { box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+.target-summary-compressed { padding: 0.65rem 0.9rem; margin-bottom: 0.4rem; }
+.target-cats-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
+.target-cat-chip { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.7rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600; border: 1.5px solid; transition: all 0.2s; }
+.target-cat-chip:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+.target-cat-chip.repair-chip { background: #f0fdf4; border-color: #86efac; }
+.target-cat-chip.sell-chip { background: #fef2f2; border-color: #fca5a5; }
+.target-cat-chip.harvest-chip { background: #fefce8; border-color: #fde68a; }
+.target-cat-icon { font-size: 1rem; line-height: 1; }
+.target-cat-name { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; color: #475569; }
+.target-cat-value { font-weight: 700; color: #1e293b; font-size: 0.82rem; }
+.target-cat-sep { color: #94a3b8; margin: 0 2px; }
+.target-cat-pct { font-weight: 800; font-size: 0.82rem; padding: 2px 7px; border-radius: 8px; }
+.target-cat-pct.pct-good { color: #15803d; background: #dcfce7; }
+.target-cat-pct.pct-low { color: #dc2626; background: #fee2e2; }
+.target-bottom-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; padding-top: 0.4rem; border-top: 1px dashed #e2e8f0; }
+.target-meta-compact { display: flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; color: #64748b; flex-wrap: wrap; }
+.target-meta-label { font-weight: 600; }
+.target-meta-value { font-weight: 700; color: #1e293b; }
+.target-meta-divider { color: #cbd5e1; }
+.bd-repair { color: #16a34a; font-weight: 700; }
+.bd-sell { color: #dc2626; font-weight: 700; }
+.bd-harvest { color: #ca8a04; font-weight: 700; }
+.target-achievement-compact { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; }
+.target-ach-label { font-weight: 600; color: #64748b; }
+.target-achievement-pct { font-size: 1.1rem; font-weight: 800; }
+.target-achievement-pct.high { color: #16a34a; }
+.target-achievement-pct.medium { color: #ca8a04; }
+.target-achievement-pct.low { color: #dc2626; }
+.target-ach-of { font-size: 0.72rem; color: #94a3b8; font-weight: 500; }
+.tech-accent-bar { height: 4px; border-radius: 2px; margin-bottom: 0.75rem; transition: all 0.3s; }
+.tech-name-colored { font-weight: 800; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem; }
+.tech-color-dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+.tech-achievement-colored { font-size: 1.3rem; font-weight: 900; }
+.tech-progress-track { background: #f1f5f9; border-radius: 12px; overflow: hidden; height: 10px; }
+.tech-progress-fill { height: 100%; border-radius: 12px; transition: width 0.5s ease; }
+.tech-chip-colored { border-width: 2px; }
+.chart-container-unified { position: relative; height: 300px; width: 100%; }
+.mfr-legend-custom { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 0.8rem; padding: 0.6rem; background: #f8fafc; border-radius: 16px; }
+.mfr-legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; font-weight: 600; color: #2d3748; }
+.mfr-legend-color { width: 14px; height: 14px; border-radius: 4px; }
+.trends-filter-bar { background: #f8fafc; border-radius: 60px; padding: 0.5rem 1rem; }
+.trends-filter-bar select { border-radius: 20px; border: 1.5px solid #cbd5e0; padding: 5px 12px; font-size: 0.82rem; background: white; font-weight: 500; }
+.grade-summary-header { background: linear-gradient(135deg, #1a6090 0%, #0f4668 100%); color: white; padding: 0.6rem 1rem; border-radius: 12px; margin-bottom: 1rem; display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1rem; }
+.grade-summary-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1rem; }
+.grade-summary-badge { padding: 6px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
+.badge-repair { background: #dbeafe; color: #1e40af; }
+.badge-sell { background: #fee2e2; color: #991b1b; }
+.badge-harvest { background: #d1fae5; color: #065f46; }
+.badge-other { background: #fef3c7; color: #92400e; }
+.grade-summary-total { margin-top: 1rem; padding-top: 0.8rem; border-top: 2px solid #e2e8f0; font-size: 0.9rem; font-weight: 700; color: #2d3748; }
+.grade-summary-total span { color: #1a6090; font-size: 1.1rem; }
+.compact-stats-card { background: linear-gradient(135deg, #f8fafc 0%, #eef2f9 100%); border-radius: 20px; padding: 1.5rem; height: 100%; display: flex; flex-direction: column; justify-content: center; }
+.compact-stats-title { font-size: 0.85rem; font-weight: 700; color: #4a5568; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+.compact-stat-row { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0; border-bottom: 1px dashed #e2e8f0; }
+.compact-stat-row:last-child { border-bottom: none; }
+.compact-stat-label { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 600; color: #2d3748; }
+.compact-stat-dot { width: 12px; height: 12px; border-radius: 3px; }
+.compact-stat-value { font-size: 1.1rem; font-weight: 800; color: #1e2f3e; }
+.compact-stat-pct { font-size: 0.75rem; font-weight: 600; color: #718096; margin-left: 0.5rem; }
+.compact-stat-pct.high { color: #10b981; }
+.compact-stat-pct.low { color: #ef4444; }
+.compact-progress-bar { height: 10px; background: #e2e8f0; border-radius: 20px; overflow: hidden; margin-top: 1rem; display: flex; }
+.compact-progress-complete { background: linear-gradient(90deg, #10b981, #059669); height: 100%; transition: width 0.5s ease; }
+.compact-progress-incomplete { background: linear-gradient(90deg, #ef4444, #dc2626); height: 100%; transition: width 0.5s ease; }
+.transitions-list { max-height: 400px; overflow-y: auto; }
+.transition-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; border-bottom: 1px solid #eef2f8; transition: background 0.15s; }
+.transition-item:hover { background-color: #f8fafc; }
+.transition-item:last-child { border-bottom: none; }
+.transition-label { font-size: 0.85rem; font-weight: 600; color: #2d3748; display: flex; align-items: center; gap: 0.5rem; }
+.transition-arrow { color: #1a6090; font-weight: 700; }
+.transition-count { font-size: 1rem; font-weight: 700; color: #1a6090; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); padding: 0.25rem 0.75rem; border-radius: 20px; }
+.transition-from { color: #dc2626; font-weight: 600; }
+.transition-to { color: #059669; font-weight: 600; }
+.other-cond-cell { font-size: 0.82rem; font-weight: 600; color: #6b7280; }
+.vt-summary-bar { background: linear-gradient(135deg, #f8fafc 0%, #eef2f9 100%); border-radius: 20px; padding: 1rem 1.5rem; margin-bottom: 1rem; border: 1px solid #e2e8f0; }
+.vt-summary-main { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
+.vt-summary-stats { display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: center; }
+.vt-stat-item { display: flex; align-items: center; gap: 0.5rem; }
+.vt-stat-label { font-size: 0.78rem; color: #6c757d; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+.vt-stat-value { font-size: 1.1rem; font-weight: 800; color: #1e2f3e; }
+.vt-stat-value.highlight { color: #1a6090; }
+.vt-category-pills { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.vt-pill { padding: 5px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.2s; border: 2px solid transparent; display: inline-flex; align-items: center; gap: 0.4rem; }
+.vt-pill:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.1); }
+.vt-pill.active { border-color: #1a6090; box-shadow: 0 3px 8px rgba(26, 96, 144, 0.25); }
+.vt-pill-all { background: #e2e8f0; color: #2d3748; }
+.vt-pill-repair { background: #d1fae5; color: #065f46; }
+.vt-pill-harvest { background: #fef3c7; color: #92400e; }
+.vt-pill-sell { background: #fee2e2; color: #991b1b; }
+.vt-pill-other { background: #f3f4f6; color: #4b5563; }
+.vt-pill .pill-count { background: rgba(0,0,0,0.1); padding: 1px 7px; border-radius: 10px; font-size: 0.72rem; }
+.vt-reset-btn { background: #ef4444; color: white; border: none; border-radius: 20px; padding: 5px 14px; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: none; }
+.vt-reset-btn:hover { background: #dc2626; transform: translateY(-1px); }
+.vt-reset-btn.show { display: inline-flex; align-items: center; gap: 0.4rem; }
+.vt-search-box { position: relative; }
+.vt-search-box input { border: 1.5px solid #cbd5e0; border-radius: 20px; padding: 6px 14px 6px 32px; font-size: 0.82rem; background: white; width: 220px; transition: all 0.2s; }
+.vt-search-box input:focus { outline: none; border-color: #1a6090; box-shadow: 0 0 0 3px rgba(26, 96, 144, 0.15); width: 260px; }
+.vt-search-box i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 0.85rem; }
+.sort-icon { margin-left: 4px; color: #6c86a3; transition: color 0.2s; font-size: 0.8rem; }
+th:hover .sort-icon { color: #f0f6ff; }
+.sort-icon.active-asc { color: #10b981; }
+.sort-icon.active-desc { color: #ef4444; }
+.history-count-badge { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+.history-modal .modal-content { border-radius: 24px; overflow: hidden; border: none; }
+.history-modal-header { background: linear-gradient(110deg, #102b3b 0%, #1b4f6e 100%); padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.history-modal-title-group { display: flex; align-items: center; gap: 0.85rem; flex: 1; min-width: 0; }
+.history-modal-icon { width: 38px; height: 38px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.05rem; flex-shrink: 0; box-shadow: 0 4px 10px rgba(102, 126, 234, 0.35); }
+.history-modal-title-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.history-modal-title { color: white; font-size: 1.05rem; font-weight: 700; letter-spacing: -0.3px; line-height: 1.2; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.history-modal-subtitle { color: rgba(255,255,255,0.7); font-size: 0.75rem; font-weight: 500; line-height: 1.2; }
+.history-modal-subtitle .serial-value { color: #fbbf24; font-weight: 700; font-family: 'Courier New', monospace; }
+.history-modal .btn-close-white { opacity: 0.8; flex-shrink: 0; }
+.history-modal .btn-close-white:hover { opacity: 1; }
+.history-modal .modal-body { padding: 1.25rem; background: #f8fafc; }
+.history-record-card { background: white; border-radius: 18px; padding: 1.25rem; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
+.history-record-card:last-child { margin-bottom: 0; }
+.record-header { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px dashed #e2e8f0; }
+.record-meta-badges { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.meta-badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 4px 10px; border-radius: 14px; font-size: 0.75rem; font-weight: 600; }
+.meta-badge-number { background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); color: #4338ca; }
+.meta-badge-date { background: #f1f5f9; color: #475569; }
+.meta-badge-tech { background: #dbeafe; color: #1e40af; }
+.meta-badge-model { background: #1e293b; color: white; }
+.meta-badge-mfr { background: #fef3c7; color: #92400e; }
+.condition-compare { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.75rem; align-items: stretch; margin-bottom: 1rem; }
+.condition-box { border-radius: 14px; padding: 1rem; position: relative; overflow: hidden; }
+.condition-box::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; }
+.condition-original { background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1.5px solid #fcd34d; }
+.condition-original::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.condition-current { background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border: 1.5px solid #6ee7b7; }
+.condition-current::before { background: linear-gradient(90deg, #10b981, #34d399); }
+.condition-arrow { display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 1.2rem; padding: 0 0.25rem; }
+.condition-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.35rem; }
+.condition-original .condition-label { color: #b45309; }
+.condition-current .condition-label { color: #047857; }
+.condition-value { font-size: 1.15rem; font-weight: 800; line-height: 1.2; word-break: break-word; }
+.condition-original .condition-value { color: #92400e; }
+.condition-current .condition-value { color: #065f46; }
+.comments-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.comment-box-redesigned { border-radius: 14px; padding: 0.9rem; position: relative; overflow: hidden; min-height: 110px; }
+.comment-box-redesigned::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; }
+.comment-original { background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); border: 1.5px solid #fdba74; }
+.comment-original::before { background: linear-gradient(180deg, #f97316, #fb923c); }
+.comment-current { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #86efac; }
+.comment-current::before { background: linear-gradient(180deg, #16a34a, #4ade80); }
+.comment-header { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.5rem; padding-bottom: 0.4rem; border-bottom: 1px dashed rgba(0,0,0,0.1); }
+.comment-header-icon { width: 22px; height: 22px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: white; flex-shrink: 0; }
+.comment-original .comment-header-icon { background: linear-gradient(135deg, #f97316, #fb923c); }
+.comment-current .comment-header-icon { background: linear-gradient(135deg, #16a34a, #4ade80); }
+.comment-header-text { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
+.comment-original .comment-header-text { color: #c2410c; }
+.comment-current .comment-header-text { color: #15803d; }
+.comment-body { font-size: 0.88rem; line-height: 1.5; word-break: break-word; white-space: pre-wrap; max-height: 150px; overflow-y: auto; }
+.comment-original .comment-body { color: #7c2d12; }
+.comment-current .comment-body { color: #14532d; }
+.comment-body:empty::before { content: '—'; opacity: 0.4; font-style: italic; }
+.insight-banner { background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%); border: 1px solid #c4b5fd; border-radius: 12px; padding: 0.75rem 1rem; margin-top: 1rem; display: flex; align-items: flex-start; gap: 0.6rem; }
+.insight-banner-icon { width: 28px; height: 28px; background: linear-gradient(135deg, #8b5cf6, #a78bfa); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.85rem; flex-shrink: 0; }
+.insight-banner-text { font-size: 0.85rem; color: #5b21b6; font-weight: 500; line-height: 1.4; }
+.insight-banner-text strong { font-weight: 700; }
+.history-modal .modal-footer { background: white; border-top: 1px solid #e2e8f0; padding: 0.9rem 1.25rem; }
+.comment-body::-webkit-scrollbar { width: 6px; }
+.comment-body::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); border-radius: 3px; }
+.comment-body::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 3px; }
+.monthly-trend-stats { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
+.trend-stat-pill { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: linear-gradient(135deg, #f8fafc 0%, #eef2f9 100%); border: 1px solid #e2e8f0; border-radius: 20px; font-size: 0.82rem; }
+.trend-stat-pill i { font-size: 0.9rem; }
+.trend-stat-pill .trend-value { font-weight: 800; color: #1e293b; font-size: 1rem; }
+.trend-stat-pill .trend-label { color: #64748b; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.3px; }
+.trend-up { color: #16a34a; }
+.trend-down { color: #dc2626; }
+.trend-neutral { color: #64748b; }
+.monthly-blocks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; margin-top: 1rem; }
+.month-block-card { background: white; border-radius: 16px; padding: 1.2rem 1rem; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 2px solid transparent; transition: all 0.25s ease; position: relative; overflow: hidden; }
+.month-block-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #667eea, #764ba2); }
+.month-block-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.12); border-color: #667eea; }
+.month-block-card.peak-month { border-color: #f59e0b; box-shadow: 0 8px 20px rgba(245, 158, 11, 0.2); }
+.month-block-card.peak-month::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.month-block-card.zero-month { opacity: 0.6; }
+.month-block-icon { width: 42px; height: 42px; margin: 0 auto 0.6rem; background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #4338ca; }
+.month-block-card.peak-month .month-block-icon { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #92400e; }
+.month-block-name { font-size: 0.85rem; font-weight: 700; color: #4a5568; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.3rem; }
+.month-block-year { font-size: 0.75rem; color: #94a3b8; font-weight: 600; margin-bottom: 0.6rem; }
+.month-block-value { font-size: 1.8rem; font-weight: 800; color: #1e293b; line-height: 1; margin-bottom: 0.4rem; }
+.month-block-card.peak-month .month-block-value { color: #b45309; }
+.month-block-card.zero-month .month-block-value { color: #94a3b8; }
+.month-block-pct { font-size: 0.72rem; color: #64748b; font-weight: 600; }
+.month-block-pct.peak { color: #b45309; font-weight: 700; }
+.month-block-badge { position: absolute; top: 10px; right: 10px; background: linear-gradient(135deg, #f59e0b, #fbbf24); color: white; font-size: 0.65rem; font-weight: 700; padding: 3px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.3px; }
+.monthly-total-summary { background: linear-gradient(135deg, #1a6090 0%, #0f4668 100%); color: white; border-radius: 20px; padding: 1.5rem; margin-top: 1.5rem; display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 1rem; }
+.monthly-total-item { text-align: center; }
+.monthly-total-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.85; margin-bottom: 0.3rem; }
+.monthly-total-value { font-size: 1.8rem; font-weight: 800; }
+@media (max-width: 768px) {
+.modern-header { flex-direction: column; align-items: stretch; padding: 0.75rem 1rem; }
+.header-title { font-size: 1rem; }
+.stat-card-modern h2 { font-size: 1.7rem; }
+.summary-card .summary-value { font-size: 1.4rem; }
+.quick-scroll-wrapper { gap: 6px; }
+.quick-date-btn { padding: 5px 10px; font-size: 0.75rem; }
+.quick-divider { display: none; }
+.chart-container-unified { height: 260px; }
+.export-status { display: none; }
+.condition-compare { grid-template-columns: 1fr; }
+.condition-arrow { transform: rotate(90deg); padding: 0.25rem 0; }
+.comments-compare { grid-template-columns: 1fr; }
+.history-modal-title { font-size: 0.95rem; }
+.target-cats-row { flex-direction: column; align-items: stretch; }
+.monthly-blocks-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem; }
+.month-block-value { font-size: 1.5rem; }
+}
+</style>
+</head>
+<body>
+<div class="modern-header">
+<div class="header-title-group">
+<div class="header-icon-wrap"><i class="fas fa-microchip"></i></div>
+<div class="header-text">
+<h1 class="header-title">Quantum Repair Performance</h1>
+<div class="header-subtitle">Fixed Condition Totals · Enhanced History with Insights</div>
+</div>
+</div>
+<input type="file" id="fileInput" class="header-file-input" accept=".xlsx, .xls">
+</div>
+<div class="container-fluid px-3 px-lg-4">
+<div class="row mb-4">
+<div class="col-12">
+<div class="filter-card shadow-sm">
+<div class="row align-items-end g-3">
+<div class="col-md-3"><label class="form-label fw-semibold"><i class="far fa-calendar-alt me-1 text-primary"></i>Start Date</label><input type="date" id="startDate" class="form-control rounded-pill border-0 bg-light"></div>
+<div class="col-md-3"><label class="form-label fw-semibold"><i class="far fa-calendar-alt me-1 text-primary"></i>End Date</label><input type="date" id="endDate" class="form-control rounded-pill border-0 bg-light"></div>
+<div class="col-md-3"><label class="form-label fw-semibold"><i class="fas fa-user-cog me-1 text-primary"></i>Technician</label><select id="techFilter" class="form-select rounded-pill border-0 bg-light"><option value="All">All Technicians</option></select></div>
+<div class="col-md-3"><label class="form-label fw-semibold"><i class="fas fa-search me-1 text-primary"></i>Advanced Lookup</label><button id="openSearchModalBtn" class="btn btn-outline-special w-100"><i class="fas fa-globe me-2"></i>Serial Number Search</button></div>
+</div>
+<div class="quick-filters-section">
+<div class="quick-filters-label"><i class="fas fa-bolt text-warning"></i> Quick Date Filters</div>
+<div class="quick-scroll-wrapper">
+<button class="quick-date-btn" data-preset="today" onclick="setQuickDateRange('today')"><i class="fas fa-sun"></i>Today</button>
+<button class="quick-date-btn" data-preset="yesterday" onclick="setQuickDateRange('yesterday')"><i class="fas fa-cloud-moon"></i>Yesterday</button>
+<button class="quick-date-btn" data-preset="thisWeek" onclick="setQuickDateRange('thisWeek')"><i class="fas fa-calendar-week"></i>This Week</button>
+<button class="quick-date-btn" data-preset="last7Days" onclick="setQuickDateRange('last7Days')"><i class="fas fa-calendar-day"></i>Last 7 Days</button>
+<button class="quick-date-btn" data-preset="last30Days" onclick="setQuickDateRange('last30Days')"><i class="fas fa-calendar"></i>Last 30 Days</button>
+<button class="quick-date-btn" data-preset="thisMonth" onclick="setQuickDateRange('thisMonth')"><i class="fas fa-calendar-check"></i>This Month</button>
+<button class="quick-date-btn" data-preset="lastMonth" onclick="setQuickDateRange('lastMonth')"><i class="fas fa-calendar-minus"></i>Last Month</button>
+<div class="quick-divider"></div>
+<div class="quick-filters-label mb-0" style="margin: 0;"><i class="fas fa-calendar-alt text-info"></i> Jump to:</div>
+<div class="month-picker-group">
+<select id="quickMonthSelect"><option value="0">January</option><option value="1">February</option><option value="2">March</option><option value="3">April</option><option value="4">May</option><option value="5">June</option><option value="6">July</option><option value="7">August</option><option value="8">September</option><option value="9">October</option><option value="10">November</option><option value="11">December</option></select>
+<select id="quickYearSelect"></select>
+<button class="month-apply-btn" onclick="applyMonthYearFilter()"><i class="fas fa-check me-1"></i>Go</button>
+</div>
+<div class="quick-divider"></div>
+<button class="quick-date-btn btn-clear" data-preset="clear" onclick="setQuickDateRange('clear')"><i class="fas fa-rotate-left"></i>Clear</button>
+</div>
+</div>
+<div class="row mt-3"><div class="col text-end"><span id="dateRangeInfo" class="badge bg-secondary bg-opacity-25 text-dark px-3 py-2 rounded-pill"><i class="far fa-clock me-1"></i> Select range → auto insights</span></div></div>
+</div>
+</div>
+</div>
+<div class="row mb-4 g-3">
+<div class="col-md-3"><div class="stat-card-modern bg-repair-grad"><i class="fas fa-check-circle"></i><h5>Repair Complete</h5><h2 id="countRepair">0</h2><small id="pctRepair">0%</small></div></div>
+<div class="col-md-3"><div class="stat-card-modern bg-harvest-grad"><i class="fas fa-tools"></i><h5>Part Harvest</h5><h2 id="countHarvest">0</h2><small id="pctHarvest">0%</small></div></div>
+<div class="col-md-3"><div class="stat-card-modern bg-sell-grad"><i class="fas fa-tag"></i><h5>Sell As Is</h5><h2 id="countSell">0</h2><small id="pctSell">0%</small></div></div>
+<div class="col-md-3"><div class="stat-card-modern bg-total-grad"><i class="fas fa-microchip"></i><h5>Total Processed</h5><h2 id="countTotal">0</h2><small>unique devices</small></div></div>
+</div>
+<div class="row mb-4">
+<div class="col-12">
+<div class="glass-card p-3 p-lg-4">
+<div class="row g-3">
+<div class="col-lg col-md-4 col-sm-6"><div class="summary-card"><div class="summary-icon"><i class="fas fa-boxes-stacked"></i></div><div class="summary-value" id="summaryTotalUnits">0</div><div class="summary-label">Total Units</div></div></div>
+<div class="col-lg col-md-4 col-sm-6"><div class="summary-card"><div class="summary-icon"><i class="fas fa-users"></i></div><div class="summary-value" id="summaryTotalTechs">0</div><div class="summary-label">Total Technicians</div></div></div>
+<div class="col-lg col-md-4 col-sm-6"><div class="summary-card"><div class="summary-icon"><i class="fas fa-industry"></i></div><div class="summary-value" id="summaryTotalManufacturers">0</div><div class="summary-label">Total Manufacturers</div></div></div>
+<div class="col-lg col-md-4 col-sm-6"><div class="summary-card"><div class="summary-icon"><i class="fas fa-chart-bar"></i></div><div class="summary-value" id="summaryDailyAvg">0</div><div class="summary-label">Daily Average</div></div></div>
+<div class="col-lg col-md-4 col-sm-6"><div class="summary-card"><div class="summary-icon"><i class="fas fa-calendar-days"></i></div><div class="summary-value" id="summaryDaysWorked">0</div><div class="summary-label">Days Worked</div></div></div>
+</div>
+</div>
+</div>
+</div>
+<div class="row mb-4">
+<div class="col-12">
+<div class="glass-card p-3 p-lg-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+<h5 class="mb-0 fw-bold"><i class="fas fa-chalkboard-user me-2 text-primary"></i> Technician vs. Daily Targets</h5>
+<button id="exportTargetsBtn" class="btn btn-sm btn-outline-secondary rounded-pill px-3"><i class="fas fa-file-excel me-1"></i> Export</button>
+</div>
+<div class="table-responsive"><table class="table table-modern align-middle" id="targetTable"><thead><tr><th>Technician</th><th>Active Days</th><th>Repair Complete (Target/Day)</th><th>Sell As Is (Target/Day)</th><th>Parts Harvest (Target/Day)</th><th>Total Achievement</th></tr></thead><tbody id="targetTableBody">...</tbody></table></div>
+</div>
+</div>
+</div>
+<div class="row mb-4 g-3">
+<div class="col-lg-6"><div class="glass-card p-3 p-lg-4"><h5 class="text-center fw-semibold mb-3"><i class="fas fa-chart-simple me-2 text-info"></i>Technician Stacked Performance</h5><div class="chart-container-unified"><canvas id="techChart"></canvas></div></div></div>
+<div class="col-lg-6"><div class="glass-card p-3 p-lg-4"><h5 class="text-center fw-semibold mb-3"><i class="fas fa-chart-pie me-2 text-success"></i>Category Split</h5><div class="chart-container-unified"><canvas id="distributionChart"></canvas></div></div></div>
+</div>
+<div class="row mb-4 g-3">
+<div class="col-lg-6">
+<div class="glass-card p-3 p-lg-4">
+<div class="grade-summary-header"><i class="fas fa-clipboard-list"></i> Current Grade Summary</div>
+<div class="grade-summary-badges">
+<span class="grade-summary-badge badge-repair"><i class="fas fa-wrench"></i> REPAIR: <strong id="gsRepair">0</strong></span>
+<span class="grade-summary-badge badge-sell"><i class="fas fa-fire"></i> SELL: <strong id="gsSell">0</strong></span>
+<span class="grade-summary-badge badge-harvest"><i class="fas fa-leaf"></i> HARVEST: <strong id="gsHarvest">0</strong></span>
+<span class="grade-summary-badge badge-other"><i class="fas fa-box"></i> OTHER: <strong id="gsOther">0</strong></span>
+</div>
+<div class="chart-container-unified" style="height: 340px;"><canvas id="gradeBarChart"></canvas></div>
+<div class="grade-summary-total">Total completed: <span id="gsTotal">0</span></div>
+</div>
+</div>
+<div class="col-lg-6">
+<div class="compact-stats-card">
+<div class="compact-stats-title"><i class="fas fa-chart-pie text-primary"></i> Completion Overview</div>
+<div class="compact-stat-row"><div class="compact-stat-label"><div class="compact-stat-dot" style="background: #10b981;"></div> Complete</div><div><span class="compact-stat-value" id="csComplete">0</span><span class="compact-stat-pct high" id="csCompletePct">0%</span></div></div>
+<div class="compact-stat-row"><div class="compact-stat-label"><div class="compact-stat-dot" style="background: #ef4444;"></div> Incomplete</div><div><span class="compact-stat-value" id="csIncomplete">0</span><span class="compact-stat-pct low" id="csIncompletePct">0%</span></div></div>
+<div class="compact-stat-row"><div class="compact-stat-label"><div class="compact-stat-dot" style="background: #1a6090;"></div> Total Units</div><div><span class="compact-stat-value" id="csTotal">0</span></div></div>
+<div class="compact-progress-bar"><div class="compact-progress-complete" id="cpComplete" style="width: 0%;"></div><div class="compact-progress-incomplete" id="cpIncomplete" style="width: 0%;"></div></div>
+</div>
+</div>
+</div>
+<div class="row mb-4">
+<div class="col-12">
+<div class="glass-card p-3 p-lg-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+<h5 class="fw-bold mb-0"><i class="fas fa-exchange-alt me-2 text-primary"></i> Top Transitions</h5>
+<span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill"><i class="fas fa-list-ol me-1"></i>Most Common</span>
+</div>
+<div class="transitions-list" id="transitionsList"></div>
+</div>
+</div>
+</div>
+<div class="row mb-4 g-3">
+<div class="col-lg-6">
+<div class="glass-card p-3 p-lg-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+<h5 class="fw-bold mb-0"><i class="fas fa-industry me-2 text-primary"></i> Manufacturer vs Current Condition</h5>
+<span class="badge bg-info bg-opacity-10 text-info px-3 py-2 rounded-pill"><i class="fas fa-layer-group me-1"></i>Stacked</span>
+</div>
+<div class="chart-container-unified"><canvas id="manufacturerChart"></canvas></div>
+<div id="mfrLegendContainer" class="mfr-legend-custom"></div>
+</div>
+</div>
+<div class="col-lg-6">
+<div class="glass-card p-3 p-lg-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+<h5 class="fw-bold mb-0"><i class="fas fa-calendar-alt me-2 text-primary"></i> Monthly Repair Trends</h5>
+<div class="trends-filter-bar d-flex gap-2 align-items-center">
+<select id="trendsCategoryFilter" class="form-select form-select-sm" style="width: auto;"><option value="all">All Categories</option><option value="Repair Complete">Repair Complete</option><option value="Part Harvest">Part Harvest</option><option value="Sell As Is">Sell As Is</option></select>
+<select id="trendsSortSelect" class="form-select form-select-sm" style="width: auto;"><option value="desc">High to Low</option><option value="asc">Low to High</option><option value="alpha">Alphabetical</option></select>
+</div>
+</div>
+<div class="chart-container-unified"><canvas id="monthlyTrendsChart"></canvas></div>
+</div>
+</div>
+</div>
+<div class="row mb-4 g-3">
+<div class="col-lg-6">
+<div class="glass-card p-3 p-lg-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+<h5 class="fw-bold mb-0"><i class="fas fa-chart-column me-2 text-primary"></i> Daily Average Output</h5>
+<span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill"><i class="fas fa-calendar-day me-1"></i>By Date</span>
+</div>
+<div class="chart-container-unified"><canvas id="dailyOutputChart"></canvas></div>
+<div class="text-muted small mt-2 text-center"><i class="fas fa-info-circle me-1"></i>Unique units processed per day.</div>
+</div>
+</div>
+<div class="col-lg-6">
+<div class="glass-card p-3 p-lg-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+<h5 class="fw-bold mb-0"><i class="fas fa-user-gear me-2 text-primary"></i> Technician Output</h5>
+<span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill"><i class="fas fa-arrow-down-wide-short me-1"></i>Sorted</span>
+</div>
+<div class="chart-container-unified"><canvas id="techOutputChart"></canvas></div>
+<div class="text-muted small mt-2 text-center"><i class="fas fa-info-circle me-1"></i>Total units by technician.</div>
+</div>
+</div>
+</div>
+<div class="row mb-4 g-3">
+<div class="col-lg-6">
+<div class="glass-card p-3 p-lg-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+<h5 class="fw-bold mb-0"><i class="fas fa-tag me-2 text-warning"></i> Grade Categories</h5>
+<span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill"><i class="fas fa-layer-group me-1"></i>By Outcome</span>
+</div>
+<div class="chart-container-unified"><canvas id="gradeCategoriesChart"></canvas></div>
+<div class="text-muted small mt-2 text-center"><i class="fas fa-info-circle me-1"></i>Repair / Sell / Harvest / Other distribution.</div>
+</div>
+</div>
+<div class="col-lg-6">
+<div class="glass-card p-3 p-lg-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+<h5 class="fw-bold mb-0"><i class="fas fa-chart-bar me-2 text-success"></i> Monthly Complete vs Total</h5>
+<span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill"><i class="fas fa-balance-scale me-1"></i>Completion Rate</span>
+</div>
+<div class="chart-container-unified"><canvas id="monthlyCompleteChart"></canvas></div>
+</div>
+</div>
+</div>
+<div class="row mb-4">
+<div class="col-12">
+<div class="glass-card p-3 p-lg-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+<h5 class="fw-bold mb-0"><i class="fas fa-chart-column me-2 text-primary"></i> Total Processed Per Month</h5>
+<span class="badge bg-info bg-opacity-10 text-info px-3 py-2 rounded-pill"><i class="fas fa-calendar-alt me-1"></i>Monthly Volume</span>
+</div>
+<div class="chart-container-unified" style="height: 350px;"><canvas id="monthlyProcessedChart"></canvas></div>
+<div class="text-muted small mt-2 text-center"><i class="fas fa-info-circle me-1"></i>Unique units processed per month based on transition records.</div>
+</div>
+</div>
+</div>
+<div class="row mb-4">
+<div class="col-12">
+<div class="glass-card p-3 p-lg-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+<h5 class="fw-bold mb-0"><i class="fas fa-chart-line me-2 text-primary"></i> Monthly Processed Trend Analysis</h5>
+<span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill"><i class="fas fa-wave-square me-1"></i>Trend Line</span>
+</div>
+<div id="monthlyTrendStats" class="monthly-trend-stats"></div>
+<div class="chart-container-unified" style="height: 380px;"><canvas id="monthlyTrendLineChart"></canvas></div>
+<div class="text-muted small mt-2 text-center"><i class="fas fa-info-circle me-1"></i>Monthly unique units processed with cumulative total trend. Hover for details.</div>
+</div>
+</div>
+</div>
+<div class="row mb-4">
+<div class="col-12">
+<div class="glass-card p-3 p-lg-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+<h5 class="fw-bold mb-0"><i class="fas fa-calendar-alt me-2 text-primary"></i>📊 Monthly Processed Overview</h5>
+<span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill"><i class="fas fa-th me-1"></i>Block View</span>
+</div>
+<div class="text-muted small mb-3"><i class="fas fa-info-circle me-1"></i>Each card shows <strong>unique</strong> devices processed per month. If a device is processed multiple times in the same month, it is counted once in that month's block.</div>
+<div id="monthlyBlocksContainer" class="monthly-blocks-grid"></div>
+<div id="monthlyTotalSummary" class="monthly-total-summary"></div>
+<div class="text-muted small mt-3"><i class="fas fa-info-circle me-1"></i> <strong>Note:</strong> "Sum of Blocks" may be less than "Total Transitions" if devices are re-scanned multiple times within the same month. "Total Unique Devices" shows the actual unique count across the entire selected period.</div>
+</div>
+</div>
+</div>
+<div class="row mb-4">
+<div class="col-12">
+<div class="analytics-section glass-card">
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+<h5 class="fw-bold mb-0"><i class="fas fa-chart-bar me-2 text-primary"></i> Condition Breakdown by Technician (Unique Serial Numbers)</h5>
+<div class="d-flex align-items-center">
+<button id="exportConditionsBtn" class="btn-export-conditions"><i class="fas fa-file-excel me-2"></i>Export to Excel<i class="fas fa-download ms-1"></i></button>
+<span id="exportStatus" class="export-status"><i class="fas fa-check-circle me-1"></i>Exported!</span>
+</div>
+</div>
+<div class="table-responsive">
+<table class="table table-modern table-sm" id="conditionsTable">
+<thead><tr id="conditionsTableHeader"><th>Technician</th><th>Active Days</th><th>Class A</th><th>Class B</th><th>Class C</th><th>RFR</th><th>Scrap</th><th>Salvaged</th><th>Repaired</th><th>Total Unique SN</th><th>Daily Avg</th><th>Validation</th></tr></thead>
+<tbody id="conditionsTableBody"><tr><td colspan="50" class="text-center">Loading data...</td></tr></tbody>
+</table>
+</div>
+<div class="text-muted small mt-2"><i class="fas fa-check-circle text-success me-1"></i> Each unique serial counted once per condition type. Sum of all conditions = Total Unique SN (validated).</div>
+</div>
+</div>
+</div>
+<div class="row mb-5">
+<div class="col-12">
+<div class="glass-card p-3 p-lg-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+<h5 class="mb-0 fw-bold"><i class="fas fa-table-list me-2 text-secondary"></i>Valid Transitions</h5>
+<button id="exportExcelBtn" class="btn btn-sm btn-outline-success rounded-pill"><i class="fas fa-download me-1"></i> Export Table</button>
+</div>
+<div class="vt-summary-bar">
+<div class="vt-summary-main">
+<div class="vt-summary-stats">
+<div class="vt-stat-item"><i class="fas fa-list-check text-primary"></i><span class="vt-stat-label">Showing</span><span class="vt-stat-value highlight" id="vtShowingCount">0</span><span class="vt-stat-label">of</span><span class="vt-stat-value" id="vtTotalCount">0</span></div>
+<div class="vt-stat-item"><i class="fas fa-wrench text-success"></i><span class="vt-stat-label">Repair:</span><span class="vt-stat-value" id="vtRepairCount">0</span></div>
+<div class="vt-stat-item"><i class="fas fa-leaf text-warning"></i><span class="vt-stat-label">Harvest:</span><span class="vt-stat-value" id="vtHarvestCount">0</span></div>
+<div class="vt-stat-item"><i class="fas fa-tag text-danger"></i><span class="vt-stat-label">Sell:</span><span class="vt-stat-value" id="vtSellCount">0</span></div>
+<div class="vt-stat-item"><i class="fas fa-box text-secondary"></i><span class="vt-stat-label">Other:</span><span class="vt-stat-value" id="vtOtherCount">0</span></div>
+</div>
+<div class="d-flex align-items-center gap-2 flex-wrap">
+<div class="vt-search-box"><i class="fas fa-search"></i><input type="text" id="vtSearchInput" placeholder="Search serial, tech, model..." onkeyup="handleVtSearch()"></div>
+<button class="vt-reset-btn" id="vtResetBtn" onclick="resetVtFilters()"><i class="fas fa-times"></i> Reset</button>
+</div>
+</div>
+<div class="vt-category-pills mt-3">
+<span class="vt-stat-label me-2">Filter by Category:</span>
+<span class="vt-pill vt-pill-all active" data-category="" onclick="filterByCategory('', this)"><i class="fas fa-layer-group"></i> All <span class="pill-count" id="pillAllCount">0</span></span>
+<span class="vt-pill vt-pill-repair" data-category="Repair Complete" onclick="filterByCategory('Repair Complete', this)"><i class="fas fa-wrench"></i> Repair <span class="pill-count" id="pillRepairCount">0</span></span>
+<span class="vt-pill vt-pill-harvest" data-category="Part Harvest" onclick="filterByCategory('Part Harvest', this)"><i class="fas fa-leaf"></i> Harvest <span class="pill-count" id="pillHarvestCount">0</span></span>
+<span class="vt-pill vt-pill-sell" data-category="Sell As Is" onclick="filterByCategory('Sell As Is', this)"><i class="fas fa-tag"></i> Sell <span class="pill-count" id="pillSellCount">0</span></span>
+<span class="vt-pill vt-pill-other" data-category="Other" onclick="filterByCategory('Other', this)"><i class="fas fa-box"></i> Other <span class="pill-count" id="pillOtherCount">0</span></span>
+</div>
+</div>
+<div class="table-container" style="overflow-x: auto; max-height: 550px;">
+<table class="table table-modern" id="detailTable">
+<thead>
+<tr>
+<th onclick="sortTable('serial')">Serial <span class="sort-icon" id="sort-serial"><i class="fas fa-sort"></i></span></th>
+<th onclick="sortTable('tech')">Technician <span class="sort-icon" id="sort-tech"><i class="fas fa-sort"></i></span></th>
+<th onclick="sortTable('dateScanned')">Date Scanned <span class="sort-icon" id="sort-dateScanned"><i class="fas fa-sort"></i></span></th>
+<th onclick="sortTable('model')">Model <span class="sort-icon" id="sort-model"><i class="fas fa-sort"></i></span></th>
+<th onclick="sortTable('manufacturer')">Manufacturer <span class="sort-icon" id="sort-manufacturer"><i class="fas fa-sort"></i></span></th>
+<th onclick="sortTable('orig')">Original Cond <span class="sort-icon" id="sort-orig"><i class="fas fa-sort"></i></span></th>
+<th onclick="sortTable('curr')">Current Cond <span class="sort-icon" id="sort-curr"><i class="fas fa-sort"></i></span></th>
+<th onclick="sortTable('category')">Category <span class="sort-icon" id="sort-category"><i class="fas fa-sort"></i></span></th>
+<th>Total History</th>
+<th>Original Comments</th>
+<th>Current Comments</th>
+</tr>
+</thead>
+<tbody id="detailTableBody"></tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="modal fade history-modal" id="historyModal" tabindex="-1">
+<div class="modal-dialog modal-xl modal-dialog-centered">
+<div class="modal-content">
+<div class="history-modal-header">
+<div class="history-modal-title-group">
+<div class="history-modal-icon"><i class="fas fa-history"></i></div>
+<div class="history-modal-title-text">
+<h5 class="history-modal-title">Repair History & Intelligent Insights</h5>
+<div class="history-modal-subtitle">Serial: <span id="modalSerialTitle" class="serial-value">--</span></div>
+</div>
+</div>
+<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body"><div id="historyTimelineContainer"></div></div>
+<div class="modal-footer"><button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Close</button></div>
+</div>
+</div>
+</div>
+<div class="modal fade" id="serialSearchModal" tabindex="-1"><div class="modal-dialog modal-xl"><div class="modal-content"><div class="modal-header bg-dark text-white"><h5 class="modal-title"><i class="fas fa-microchip me-2"></i>Serial Search</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="text" id="modalSerialInput" class="form-control" placeholder="Type serial..."><div id="suggestionsContainer" class="mt-2"></div><div id="modalSearchResultArea" class="mt-3"></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button></div></div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let rawData = [], currentValidTransitions = [], currentTechRows = [], allSerialsList = [];
+let distChart, techChart, manufacturerChart, monthlyTrendsChart, dailyOutputChart, techOutputChart, gradeCategoriesChart, monthlyCompleteChart, gradeBarChart, monthlyProcessedChart, monthlyTrendLineChart, historyModal, searchModalGlobal;
+let currentTotalUnits = 0;
+let currentSortColumn = '';
+let currentSortDirection = 'asc';
+let masterDetailRecords = [];
+let masterGroupMap = new Map();
+let vtCategoryFilter = '';
+let vtSearchTerm = '';
+let globalDaysWorked = 0;
+
+const TECH_COLOR_PALETTE = [
+    { primary: '#3b82f6', light: '#dbeafe', dark: '#1e40af', gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)' },
+    { primary: '#8b5cf6', light: '#ede9fe', dark: '#5b21b6', gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' },
+    { primary: '#ec4899', light: '#fce7f3', dark: '#9d174d', gradient: 'linear-gradient(135deg, #ec4899, #db2777)' },
+    { primary: '#f59e0b', light: '#fef3c7', dark: '#92400e', gradient: 'linear-gradient(135deg, #f59e0b, #d97706)' },
+    { primary: '#10b981', light: '#d1fae5', dark: '#065f46', gradient: 'linear-gradient(135deg, #10b981, #059669)' },
+    { primary: '#06b6d4', light: '#cffafe', dark: '#155e75', gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)' },
+    { primary: '#f43f5e', light: '#ffe4e6', dark: '#9f1239', gradient: 'linear-gradient(135deg, #f43f5e, #e11d48)' },
+    { primary: '#84cc16', light: '#ecfccb', dark: '#3f6212', gradient: 'linear-gradient(135deg, #84cc16, #65a30d)' },
+    { primary: '#6366f1', light: '#e0e7ff', dark: '#3730a3', gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)' },
+    { primary: '#14b8a6', light: '#ccfbf1', dark: '#115e59', gradient: 'linear-gradient(135deg, #14b8a6, #0d9488)' },
+    { primary: '#f97316', light: '#ffedd5', dark: '#9a3412', gradient: 'linear-gradient(135deg, #f97316, #ea580c)' },
+    { primary: '#a855f7', light: '#f3e8ff', dark: '#6b21a8', gradient: 'linear-gradient(135deg, #a855f7, #9333ea)' }
+];
+
+function getTechColor(techIndex) {
+    return TECH_COLOR_PALETTE[techIndex % TECH_COLOR_PALETTE.length];
+}
+
+function initYearDropdown() { const yearSelect = document.getElementById('quickYearSelect'); const currentYear = new Date().getFullYear(); yearSelect.innerHTML = ''; for (let y = currentYear + 1; y >= currentYear - 5; y--) yearSelect.appendChild(new Option(y, y)); yearSelect.value = currentYear; }
+function initMonthPickerDefaults() { const now = new Date(); document.getElementById('quickMonthSelect').value = now.getMonth(); document.getElementById('quickYearSelect').value = now.getFullYear(); }
+
+function setQuickDateRange(preset) {
+    const today = new Date(); today.setHours(0,0,0,0); let startDate, endDate;
+    switch(preset) {
+        case 'today': startDate = new Date(today); endDate = new Date(today); break;
+        case 'yesterday': startDate = new Date(today); startDate.setDate(startDate.getDate() - 1); endDate = new Date(startDate); break;
+        case 'thisWeek': startDate = new Date(today); const dow = startDate.getDay(); const diff = dow === 0 ? 6 : dow - 1; startDate.setDate(startDate.getDate() - diff); endDate = new Date(today); break;
+        case 'last7Days': startDate = new Date(today); startDate.setDate(startDate.getDate() - 6); endDate = new Date(today); break;
+        case 'last30Days': startDate = new Date(today); startDate.setDate(startDate.getDate() - 29); endDate = new Date(today); break;
+        case 'thisMonth': startDate = new Date(today.getFullYear(), today.getMonth(), 1); endDate = new Date(today); break;
+        case 'lastMonth': startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1); endDate = new Date(today.getFullYear(), today.getMonth(), 0); break;
+        case 'clear': if (rawData.length) { initDateRangeFromScanned(); highlightQuickButton(null); updateDashboard(); } return;
+    }
+    document.getElementById('startDate').value = formatYMD(startDate); document.getElementById('endDate').value = formatYMD(endDate); highlightQuickButton(preset); updateDashboard();
+}
+
+function applyMonthYearFilter() { const month = parseInt(document.getElementById('quickMonthSelect').value); const year = parseInt(document.getElementById('quickYearSelect').value); document.getElementById('startDate').value = formatYMD(new Date(year, month, 1)); document.getElementById('endDate').value = formatYMD(new Date(year, month + 1, 0)); highlightQuickButton(null); updateDashboard(); }
+function highlightQuickButton(preset) { document.querySelectorAll('.quick-date-btn').forEach(btn => btn.classList.remove('active')); if (preset) { const b = document.querySelector(`.quick-date-btn[data-preset="${preset}"]`); if (b) b.classList.add('active'); } }
+
+document.addEventListener('DOMContentLoaded', function() {
+    historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
+    searchModalGlobal = new bootstrap.Modal(document.getElementById('serialSearchModal'));
+    document.getElementById('exportExcelBtn').addEventListener('click', () => exportToExcel('detail'));
+    document.getElementById('exportTargetsBtn').addEventListener('click', () => exportToExcel('targets'));
+    document.getElementById('exportConditionsBtn').addEventListener('click', () => exportConditionsToExcel());
+    document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+    document.getElementById('techFilter').addEventListener('change', () => { highlightQuickButton(null); updateDashboard(); });
+    document.getElementById('startDate').addEventListener('change', () => { highlightQuickButton(null); updateDashboard(); });
+    document.getElementById('endDate').addEventListener('change', () => { highlightQuickButton(null); updateDashboard(); });
+    document.getElementById('openSearchModalBtn').addEventListener('click', () => searchModalGlobal.show());
+    document.getElementById('trendsCategoryFilter').addEventListener('change', () => renderMonthlyTrendsChart());
+    document.getElementById('trendsSortSelect').addEventListener('change', () => renderMonthlyTrendsChart());
+    document.getElementById('modalSerialInput').addEventListener('input', (e) => updateSuggestions(e.target.value));
+    initYearDropdown(); initMonthPickerDefaults();
+});
+
+function handleFileUpload(e) { 
+    const file = e.target.files[0]; 
+    if(!file) return; 
+    const reader = new FileReader(); 
+    reader.onload = (evt) => { 
+        const data = new Uint8Array(evt.target.result); 
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true }); 
+        const sheet = workbook.Sheets[workbook.SheetNames[0]]; 
+        rawData = XLSX.utils.sheet_to_json(sheet); 
+        if(rawData.length){ 
+            initDateRangeFromScanned(); 
+            populateTechDropdown(); 
+            const serialSet = new Set(); 
+            rawData.forEach(r => { if(r['SERIAL NUMBER']) serialSet.add(r['SERIAL NUMBER'].toString()); }); 
+            allSerialsList = Array.from(serialSet).sort(); 
+            updateDashboard(); 
+        } else alert("No data."); 
+    }; 
+    reader.readAsArrayBuffer(file); 
+}
+
+function parseLocalDate(str) {
+    if (!str) return null;
+    const parts = str.split('-');
+    if (parts.length === 3) {
+        return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+    return new Date(str);
+}
+
+function parseDate(val) {
+    if(!val) return null;
+    if(val instanceof Date) return isNaN(val.getTime()) ? null : val;
+    if(typeof val === 'number') {
+        const excelEpoch = new Date(1899, 11, 30); 
+        return new Date(excelEpoch.getTime() + val * 86400000);
+    }
+    if (typeof val === 'string') {
+        const match = val.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (match) {
+            return new Date(match[1], match[2] - 1, match[3]);
+        }
+    }
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? null : d;
+}
+
+function formatYMD(d) {
+    if (!d || isNaN(d.getTime())) return '';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function initDateRangeFromScanned() { 
+    const dates = rawData.map(r => parseDate(r['DATE SCANNED'])).filter(d => d && !isNaN(d.getTime())); 
+    if(!dates.length) return; 
+    let minTime = dates[0].getTime();
+    let maxTime = dates[0].getTime();
+    for (let i = 1; i < dates.length; i++) {
+        const t = dates[i].getTime();
+        if (t < minTime) minTime = t;
+        if (t > maxTime) maxTime = t;
+    }
+    document.getElementById('startDate').value = formatYMD(new Date(minTime)); 
+    document.getElementById('endDate').value = formatYMD(new Date(maxTime)); 
+}
+
+function populateTechDropdown() { const techSet = new Set(); rawData.forEach(r => { if(r['SCANNED BY']) techSet.add(r['SCANNED BY']); }); const select = document.getElementById('techFilter'); select.innerHTML = '<option value="All">All Technicians</option>'; [...techSet].sort().forEach(t => select.appendChild(new Option(t, t))); }
+function categorizeCondition(cond) { if(!cond) return "Other"; const c = cond.toString().trim().toUpperCase(); if(c === "SALVAGED") return "Part Harvest"; if(c === "RFR" || c === "SCRAP") return "Sell As Is"; if(c.includes("CLASS") || c.includes("GRADE") || c === "REPAIRED") return "Repair Complete"; if(["A","B","C","E","R"].includes(c)) return "Repair Complete"; return "Other"; }
+function getRawConditionGroup(cond) { if(!cond) return "Other"; const c = cond.toString().trim().toUpperCase(); if(c.includes("CLASS A") || c === "A") return "Class A"; if(c.includes("CLASS B") || c === "B") return "Class B"; if(c.includes("CLASS C") || c === "C") return "Class C"; if(c === "RFR") return "RFR"; if(c === "SCRAP") return "Scrap"; if(c === "SALVAGED") return "Salvaged"; if(c === "REPAIRED") return "Repaired"; return "Other"; }
+
+function getFullHistoryForSerial(serial, startDateObj, endDateObj) { 
+    return rawData.filter(row => { 
+        const rowSn = row['SERIAL NUMBER']; 
+        if(!rowSn || rowSn.toString() !== serial) return false; 
+        const scanned = parseDate(row['DATE SCANNED']); 
+        return scanned && scanned >= startDateObj && scanned <= endDateObj; 
+    }).sort((a,b) => (parseDate(a['DATE SCANNED'])||0) - (parseDate(b['DATE SCANNED'])||0)); 
+}
+
+window.showRepairHistory = function(serial) {
+    const startInput = document.getElementById('startDate').value, endInput = document.getElementById('endDate').value;
+    if(!startInput || !endInput) { alert("Set date range first."); return; }
+    const startDate = parseLocalDate(startInput); startDate.setHours(0,0,0,0);
+    const endDate = parseLocalDate(endInput); endDate.setHours(23,59,59,999);
+    const historyRecords = getFullHistoryForSerial(serial, startDate, endDate);
+    document.getElementById('modalSerialTitle').innerText = serial;
+    const container = document.getElementById('historyTimelineContainer');
+    if(!historyRecords.length) { container.innerHTML = `<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>No records found for serial <strong>${escapeHtml(serial)}</strong>.</div>`; historyModal.show(); return; }
+    let html = `<div class="mb-3"><span class="insight-badge"><i class="fas fa-robot me-1"></i> Intelligent Analysis</span> <span class="ms-2 text-muted">${historyRecords.length} scan record${historyRecords.length > 1 ? 's' : ''} found</span></div>`;
+    historyRecords.forEach((rec, idx) => {
+        const origComm = escapeHtml(rec['ORIGINAL COMMENTS'] || ''); const currComm = escapeHtml(rec['CURRENT COMMENTS'] || '');
+        const origCond = escapeHtml(rec['ORIGINAL CONDITION'] || '—'); const currCond = escapeHtml(rec['CURRENT CONDITION'] || '—');
+        const tech = escapeHtml(rec['SCANNED BY'] || '—'); const model = escapeHtml(rec['MODEL'] || '—');
+        const manufacturer = escapeHtml(rec['MANUFACTURER'] || '—'); const dateScanned = formatYMD(parseDate(rec['DATE SCANNED']));
+        let insightHtml = '';
+        if (origCond !== '—' && currCond !== '—' && origCond !== currCond) insightHtml = `<div class="insight-banner"><div class="insight-banner-icon"><i class="fas fa-lightbulb"></i></div><div class="insight-banner-text"><strong>Condition Changed:</strong> "${origCond}" → <strong>"${currCond}"</strong></div></div>`;
+        else if (origCond === 'FOR REPAIR' && currCond !== 'FOR REPAIR') insightHtml = `<div class="insight-banner"><div class="insight-banner-icon"><i class="fas fa-check-circle"></i></div><div class="insight-banner-text"><strong>Status Cleared:</strong> Device moved out of <strong>FOR REPAIR</strong></div></div>`;
+        html += `<div class="history-record-card">
+        <div class="record-header"><div class="record-meta-badges">
+        <span class="meta-badge meta-badge-number"><i class="far fa-clock"></i> Record #${idx+1}</span>
+        <span class="meta-badge meta-badge-date"><i class="far fa-calendar"></i> ${dateScanned}</span>
+        <span class="meta-badge meta-badge-tech"><i class="fas fa-user"></i> ${tech}</span>
+        <span class="meta-badge meta-badge-model"><i class="fas fa-microchip"></i> ${model}</span>
+        ${manufacturer !== '—' ? `<span class="meta-badge meta-badge-mfr"><i class="fas fa-industry"></i> ${manufacturer}</span>` : ''}
+        </div></div>
+        <div class="condition-compare">
+        <div class="condition-box condition-original"><div class="condition-label"><i class="fas fa-arrow-right"></i> ORIGINAL CONDITION</div><div class="condition-value">${origCond}</div></div>
+        <div class="condition-arrow"><i class="fas fa-arrow-right"></i></div>
+        <div class="condition-box condition-current"><div class="condition-label"><i class="fas fa-check-circle"></i> CURRENT CONDITION</div><div class="condition-value">${currCond}</div></div>
+        </div>
+        <div class="comments-compare">
+        <div class="comment-box-redesigned comment-original"><div class="comment-header"><div class="comment-header-icon"><i class="fas fa-pen"></i></div><div class="comment-header-text">Original Comments</div></div><div class="comment-body">${origComm}</div></div>
+        <div class="comment-box-redesigned comment-current"><div class="comment-header"><div class="comment-header-icon"><i class="fas fa-check"></i></div><div class="comment-header-text">Current Comments</div></div><div class="comment-body">${currComm}</div></div>
+        </div>${insightHtml}</div>`;
+    });
+    container.innerHTML = html; historyModal.show();
+};
+
+function updateSummary(filteredByDate, techFilter) {
+    const data = techFilter === "All" ? filteredByDate : filteredByDate.filter(row => row['SCANNED BY'] === techFilter);
+    const uniqueSerials = new Set(); data.forEach(row => { if (row['SERIAL NUMBER']) uniqueSerials.add(row['SERIAL NUMBER'].toString()); });
+    currentTotalUnits = uniqueSerials.size; document.getElementById('summaryTotalUnits').innerText = uniqueSerials.size;
+    const uniqueTechs = new Set(); data.forEach(row => { if (row['SCANNED BY']) uniqueTechs.add(row['SCANNED BY']); }); document.getElementById('summaryTotalTechs').innerText = uniqueTechs.size;
+    const uniqueManufacturers = new Set(); data.forEach(row => { if (row['MANUFACTURER']) { const m = row['MANUFACTURER'].toString().trim(); if (m) uniqueManufacturers.add(m); } }); document.getElementById('summaryTotalManufacturers').innerText = uniqueManufacturers.size;
+    const uniqueDays = new Set(); data.forEach(row => { const date = parseDate(row['DATE SCANNED']); if (date) uniqueDays.add(formatYMD(date)); }); 
+    globalDaysWorked = uniqueDays.size; 
+    document.getElementById('summaryDaysWorked').innerText = globalDaysWorked;
+    document.getElementById('summaryDailyAvg').innerText = '0.0';
+}
+
+function updateDashboard() {
+    const start = document.getElementById('startDate').value, end = document.getElementById('endDate').value, techFilter = document.getElementById('techFilter').value;
+    if(!start || !end) return;
+    const startDate = parseLocalDate(start); startDate.setHours(0,0,0,0); const endDate = parseLocalDate(end); endDate.setHours(23,59,59,999);
+    const totalDaysRange = Math.floor((endDate - startDate) / 86400000) + 1;
+    document.getElementById('dateRangeInfo').innerHTML = `<i class="far fa-calendar-check me-1"></i>${totalDaysRange} day(s) | Tech: ${techFilter === 'All' ? 'All' : techFilter}`;
+    const filteredByDate = rawData.filter(row => { const d = parseDate(row['DATE SCANNED']); return d && d >= startDate && d <= endDate; });
+    updateSummary(filteredByDate, techFilter);
+    const groupMap = new Map(); filteredByDate.forEach(row => { const sn = row['SERIAL NUMBER']; if(sn) { if(!groupMap.has(sn)) groupMap.set(sn, []); groupMap.get(sn).push(row); } });
+    const validTransitions = []; const techAgg = new Map(); const conditionUniqueMap = new Map(); const techOtherConditionsMap = new Map();
+    for(let [sn, rows] of groupMap.entries()) {
+        rows.sort((a,b) => (parseDate(a['DATE SCANNED'])||0) - (parseDate(b['DATE SCANNED'])||0));
+        let transitionRecord = null;
+        for(let rec of rows) { const orig = (rec['ORIGINAL CONDITION'] || '').toString().trim().toUpperCase(); const curr = (rec['CURRENT CONDITION'] || '').toString().trim().toUpperCase(); if(orig === "FOR REPAIR" && curr !== "FOR REPAIR") { transitionRecord = rec; break; } }
+        if(transitionRecord) {
+            const cat = categorizeCondition(transitionRecord['CURRENT CONDITION']); const tech = transitionRecord['SCANNED BY'] || "Unknown"; const scannedDate = parseDate(transitionRecord['DATE SCANNED']);
+            if(techFilter !== "All" && tech !== techFilter) continue;
+            validTransitions.push({ serial: sn, tech, dateScanned: transitionRecord['DATE SCANNED'], model: transitionRecord['MODEL'] || '', manufacturer: (transitionRecord['MANUFACTURER'] || 'Unknown').toString().trim() || 'Unknown', orig: transitionRecord['ORIGINAL CONDITION'] || '', curr: transitionRecord['CURRENT CONDITION'] || '', category: cat, origComments: transitionRecord['ORIGINAL COMMENTS'] || '', currComments: transitionRecord['CURRENT COMMENTS'] || '' });
+            if(!techAgg.has(tech)) techAgg.set(tech, { repair:0, harvest:0, sell:0, daysSet: new Set(), uniqueSerials: new Set() });
+            const tStats = techAgg.get(tech);
+            if(cat === "Repair Complete") tStats.repair++; else if(cat === "Part Harvest") tStats.harvest++; else if(cat === "Sell As Is") tStats.sell++;
+            tStats.uniqueSerials.add(sn); if(scannedDate) tStats.daysSet.add(formatYMD(scannedDate));
+        }
+    }
+    for(let [sn, rows] of groupMap.entries()) {
+        let finalRec = null;
+        for(let rec of rows) { const orig = (rec['ORIGINAL CONDITION'] || '').toString().trim().toUpperCase(); const curr = (rec['CURRENT CONDITION'] || '').toString().trim().toUpperCase(); if(orig === "FOR REPAIR" && curr !== "FOR REPAIR") { finalRec = rec; break; } }
+        if(finalRec) {
+            const tech = finalRec['SCANNED BY'] || "Unknown";
+            if(techFilter !== "All" && tech !== techFilter) continue;
+            const currCond = finalRec['CURRENT CONDITION'] ? finalRec['CURRENT CONDITION'].toString() : '';
+            const currCondUpper = currCond.trim().toUpperCase();
+            const group = getRawConditionGroup(currCondUpper);
+            if(!conditionUniqueMap.has(tech)) conditionUniqueMap.set(tech, new Map());
+            const techConditions = conditionUniqueMap.get(tech);
+            if(!techConditions.has(group)) techConditions.set(group, new Set());
+            techConditions.get(group).add(sn);
+            if (group === 'Other') {
+                const conditionKey = currCondUpper || 'UNKNOWN';
+                if (!techOtherConditionsMap.has(tech)) techOtherConditionsMap.set(tech, new Map());
+                const techOthers = techOtherConditionsMap.get(tech);
+                if (!techOthers.has(conditionKey)) techOthers.set(conditionKey, new Set());
+                techOthers.get(conditionKey).add(sn);
+            }
+        }
+    }
+    const conditionGroupMap = new Map();
+    for(let [tech, conditionsMap] of conditionUniqueMap.entries()) {
+        if(!conditionGroupMap.has(tech)) conditionGroupMap.set(tech, { 'Class A':0, 'Class B':0, 'Class C':0, 'RFR':0, 'Scrap':0, 'Salvaged':0, 'Repaired':0, 'Other':0 });
+        const techGroups = conditionGroupMap.get(tech);
+        for(let [condType, serialSet] of conditionsMap.entries()) { if(techGroups.hasOwnProperty(condType)) techGroups[condType] = serialSet.size; else techGroups['Other'] += serialSet.size; }
+    }
+    const allOtherConditionsSet = new Set();
+    for (const [, others] of techOtherConditionsMap.entries()) { for (const [condName] of others.entries()) { allOtherConditionsSet.add(condName); } }
+    const otherConditionList = [...allOtherConditionsSet].sort();
+    currentValidTransitions = validTransitions; masterDetailRecords = [...validTransitions]; masterGroupMap = new Map(groupMap);
+    
+    // FIX: Daily Average now based on Total Processed (valid transitions) / Days Worked
+    const dailyAvgProcessed = globalDaysWorked > 0 ? (validTransitions.length / globalDaysWorked) : 0;
+    document.getElementById('summaryDailyAvg').innerText = dailyAvgProcessed.toFixed(1);
+    
+    renderKPI(validTransitions); renderTechTargetTable(techAgg, startDate, endDate); renderConditionsTable(conditionGroupMap, techAgg, otherConditionList, techOtherConditionsMap);
+    renderCharts(validTransitions); renderMonthlyTrendsChart(); renderDailyOutputChart(); renderTechOutputChart(techAgg);
+    renderGradeCategoriesChart(validTransitions); renderCurrentGradeSummary(validTransitions); renderGradeBarChart(validTransitions);
+    renderTopTransitions(validTransitions); renderMonthlyCompleteChart(); renderMonthlyProcessedChart(); renderMonthlyTrendLineChart(); renderMonthlyBlocks(); updateVtSummaryBar();
+    renderDetailTable(applyVtFilters(masterDetailRecords), masterGroupMap);
+}
+
+function renderConditionsTable(conditionMap, techAgg, otherConditionList, techOtherConditionsMap) {
+    const tbody = document.getElementById('conditionsTableBody'); const theadRow = document.getElementById('conditionsTableHeader');
+    if(conditionMap.size === 0) { tbody.innerHTML = '<tr><td colspan="50" class="text-center">No data</td></tr>'; return; }
+    const baseHeaders = ['Technician', 'Active Days', 'Class A', 'Class B', 'Class C', 'RFR', 'Scrap', 'Salvaged', 'Repaired'];
+    const finalHeaders = ['Total Unique SN', 'Daily Avg', 'Validation'];
+    const allHeaders = [...baseHeaders, ...otherConditionList, ...finalHeaders];
+    let headerHtml = '';
+    allHeaders.forEach(h => {
+        if (otherConditionList.includes(h)) { const titleAttr = h.length > 15 ? ` title="${escapeHtml(h)}"` : ''; const displayText = h.length > 15 ? h.substring(0, 12) + '…' : h; headerHtml += `<th class="other-cond-header"${titleAttr}>${escapeHtml(displayText)}</th>`; }
+        else { headerHtml += `<th>${escapeHtml(h)}</th>`; }
+    });
+    theadRow.innerHTML = headerHtml;
+    const sorted = [...conditionMap.keys()].sort(); let html = '';
+    for(let tech of sorted) {
+        const g = conditionMap.get(tech); const techStats = techAgg.get(tech);
+        const activeDays = techStats ? techStats.daysSet.size : 0; const totalUnique = techStats ? techStats.uniqueSerials.size : 0;
+        const dailyAvg = activeDays > 0 ? totalUnique / activeDays : 0;
+        const baseSum = (g['Class A']||0) + (g['Class B']||0) + (g['Class C']||0) + (g['RFR']||0) + (g['Scrap']||0) + (g['Salvaged']||0) + (g['Repaired']||0);
+        const techOthers = techOtherConditionsMap.get(tech) || new Map(); let otherSum = 0;
+        otherConditionList.forEach(cond => { otherSum += techOthers.has(cond) ? techOthers.get(cond).size : 0; });
+        const sumConditions = baseSum + otherSum; const isValid = sumConditions === totalUnique;
+        html += `<tr><td><strong>${escapeHtml(tech)}</strong></td><td>${activeDays}</td><td>${g['Class A']||0}</td><td>${g['Class B']||0}</td><td>${g['Class C']||0}</td><td>${g['RFR']||0}</td><td>${g['Scrap']||0}</td><td>${g['Salvaged']||0}</td><td>${g['Repaired']||0}</td>`;
+        otherConditionList.forEach(cond => { const count = techOthers.has(cond) ? techOthers.get(cond).size : 0; const titleAttr = cond.length > 15 ? ` title="${escapeHtml(cond)}"` : ''; html += `<td class="other-cond-cell"${titleAttr}>${count}</td>`; });
+        html += `<td><strong>${totalUnique}</strong></td><td>${dailyAvg.toFixed(1)}</td><td>${isValid ? '<i class="fas fa-check-circle text-success"></i>' : '<i class="fas fa-exclamation-triangle text-danger"></i>'}</td></tr>`;
+    }
+    tbody.innerHTML = html;
+}
+
+function renderKPI(records) {
+    const repair = records.filter(r => r.category === "Repair Complete").length; const harvest = records.filter(r => r.category === "Part Harvest").length; const sell = records.filter(r => r.category === "Sell As Is").length; const total = repair+harvest+sell;
+    document.getElementById('countRepair').innerText = repair; document.getElementById('countHarvest').innerText = harvest; document.getElementById('countSell').innerText = sell; document.getElementById('countTotal').innerText = total;
+    document.getElementById('pctRepair').innerHTML = total ? ((repair/total)*100).toFixed(1)+'%' : '0%'; document.getElementById('pctHarvest').innerHTML = total ? ((harvest/total)*100).toFixed(1)+'%' : '0%'; document.getElementById('pctSell').innerHTML = total ? ((sell/total)*100).toFixed(1)+'%' : '0%';
+}
+
+function renderTechTargetTable(techMap, startDate, endDate) {
+    const tbody = document.getElementById('targetTableBody');
+    if(!techMap.size) { tbody.innerHTML = '<tr><td colspan="6">No data</tbody>'; currentTechRows = []; return; }
+    const totalRangeDays = Math.floor((endDate - startDate) / 86400000) + 1;
+    const sorted = [...techMap.keys()].sort();
+    let html = ''; const rowsExport = [];
+    
+    sorted.forEach((tech, techIndex) => {
+        const st = techMap.get(tech); const active = st.daysSet.size;
+        const isBoardLevel = tech.toUpperCase().includes("ASA") || tech.toUpperCase().includes("LXU") || tech.toUpperCase().includes("TTH");
+        const targetRepairPerDay = isBoardLevel ? 8 : 10;
+        const tRep = targetRepairPerDay * active, tHar = 8 * active, tSel = 20 * active;
+        const pRep = tRep > 0 ? (st.repair/tRep)*100 : 0;
+        const pHar = tHar > 0 ? (st.harvest/tHar)*100 : 0;
+        const pSel = tSel > 0 ? (st.sell/tSel)*100 : 0;
+        const totalPct = pRep + pHar + pSel;
+        const totalCompleted = st.repair + st.harvest + st.sell;
+        const bdRepairPct = totalCompleted > 0 ? (st.repair / totalCompleted) * 100 : 0;
+        const bdSellPct = totalCompleted > 0 ? (st.sell / totalCompleted) * 100 : 0;
+        const bdHarvestPct = totalCompleted > 0 ? (st.harvest / totalCompleted) * 100 : 0;
+        const techColor = getTechColor(techIndex);
+        let achColorClass = 'low';
+        if (totalPct >= 200) achColorClass = 'high';
+        else if (totalPct >= 100) achColorClass = 'medium';
+        const achDisplayColor = totalPct >= 200 ? '#16a34a' : totalPct >= 100 ? '#ca8a04' : '#dc2626';
+        
+        html += `<tr>
+        <td colspan="6">
+        <div class="target-summary-card target-summary-compressed" style="border-left: 4px solid ${techColor.primary};">
+        <div class="tech-accent-bar" style="background: ${techColor.gradient};"></div>
+        <div class="target-cats-row">
+        <div class="target-cat-chip repair-chip tech-chip-colored" style="border-color: ${techColor.light}; background: ${techColor.light}40;">
+        <span class="target-cat-icon">🔧</span>
+        <span class="target-cat-name">REPAIR COMPLETE</span>
+        <span class="target-cat-value">${st.repair}<span class="target-cat-sep">/</span>${tRep}</span>
+        <span class="target-cat-pct ${pRep >= 100 ? 'pct-good' : 'pct-low'}">${pRep.toFixed(1)}%</span>
+        </div>
+        <div class="target-cat-chip sell-chip tech-chip-colored" style="border-color: ${techColor.light}; background: ${techColor.light}40;">
+        <span class="target-cat-icon">💰</span>
+        <span class="target-cat-name">SELL AS IS</span>
+        <span class="target-cat-value">${st.sell}<span class="target-cat-sep">/</span>${tSel}</span>
+        <span class="target-cat-pct ${pSel >= 100 ? 'pct-good' : 'pct-low'}">${pSel.toFixed(1)}%</span>
+        </div>
+        <div class="target-cat-chip harvest-chip tech-chip-colored" style="border-color: ${techColor.light}; background: ${techColor.light}40;">
+        <span class="target-cat-icon">🌿</span>
+        <span class="target-cat-name">PARTS HARVEST</span>
+        <span class="target-cat-value">${st.harvest}<span class="target-cat-sep">/</span>${tHar}</span>
+        <span class="target-cat-pct ${pHar >= 100 ? 'pct-good' : 'pct-low'}">${pHar.toFixed(1)}%</span>
+        </div>
+        </div>
+        <div class="target-bottom-row">
+        <div class="target-meta-compact">
+        <span class="target-meta-label">Target:</span>
+        <span class="target-meta-value">${tRep + tHar + tSel}</span>
+        <span class="target-meta-divider">|</span>
+        <span class="target-meta-label">Done:</span>
+        <span class="target-meta-value">${totalCompleted}</span>
+        <span class="target-meta-divider">|</span>
+        <span class="target-meta-label">Mix:</span>
+        <span class="bd-repair" style="color: ${techColor.primary};">R ${bdRepairPct.toFixed(0)}%</span>
+        <span class="bd-sell" style="color: ${techColor.dark};">S ${bdSellPct.toFixed(0)}%</span>
+        <span class="bd-harvest" style="color: ${techColor.primary};">H ${bdHarvestPct.toFixed(0)}%</span>
+        </div>
+        <div class="target-achievement-compact">
+        <span class="target-ach-label">Achievement:</span>
+        <span class="target-achievement-pct tech-achievement-colored" style="color: ${achDisplayColor};">${totalPct.toFixed(1)}%</span>
+        <span class="target-ach-of">/ 300%</span>
+        </div>
+        </div>
+        </div>
+        </td>
+        </tr>`;
+        
+        const bar = (pct, color) => `<div class="tech-progress-track"><div class="tech-progress-fill" style="width: ${Math.min(100, pct/3)}%; background: ${color};"></div></div>`;
+        const typeBadge = isBoardLevel ? '<span class="tech-type-badge type-board">Board Level</span>' : '<span class="tech-type-badge type-regular">Regular</span>';
+        
+        html += `<tr>
+        <td>
+        <div class="tech-name-colored">
+        <span class="tech-color-dot" style="background: ${techColor.gradient};"></span>
+        <span style="color: ${techColor.dark};">${escapeHtml(tech)}</span>
+        </div>
+        ${typeBadge}
+        </td>
+        <td><strong style="color: ${techColor.primary};">${active}/${totalRangeDays}</strong></td>
+        <td>
+        <div class="mb-1"><strong>${st.repair}/${tRep}</strong> <span class="text-muted">(${targetRepairPerDay}/day)</span></div>
+        ${bar(pRep, techColor.primary)}
+        <div class="mt-1"><span style="color: ${techColor.primary}; font-weight: 700;">${pRep.toFixed(1)}%</span></div>
+        </td>
+        <td>
+        <div class="mb-1"><strong>${st.sell}/${tSel}</strong> <span class="text-muted">(20/day)</span></div>
+        ${bar(pSel, techColor.dark)}
+        <div class="mt-1"><span style="color: ${techColor.dark}; font-weight: 700;">${pSel.toFixed(1)}%</span></div>
+        </td>
+        <td>
+        <div class="mb-1"><strong>${st.harvest}/${tHar}</strong> <span class="text-muted">(8/day)</span></div>
+        ${bar(pHar, techColor.primary)}
+        <div class="mt-1"><span style="color: ${techColor.primary}; font-weight: 700;">${pHar.toFixed(1)}%</span></div>
+        </td>
+        <td class="text-center" style="background: ${techColor.light}30;">
+        <strong class="tech-achievement-colored" style="color: ${achDisplayColor}; font-size: 1.4rem;">${totalPct.toFixed(1)}%</strong>
+        <div class="mt-2">${bar(totalPct, achDisplayColor)}</div>
+        </td>
+        </tr>`;
+        
+        rowsExport.push({ Technician:tech, ActiveDays:active, RepairTarget:tRep, HarvestTarget:tHar, SellTarget:tSel, RepairAchieved:st.repair, HarvestAchieved:st.harvest, SellAchieved:st.sell, TotalAchievement:`${totalPct.toFixed(1)}%` });
+    });
+    
+    tbody.innerHTML = html; currentTechRows = rowsExport;
+}
+
+function renderDetailTable(records, groupMap) {
+    const tbody = document.getElementById('detailTableBody'); tbody.innerHTML = '';
+    if(!records || records.length === 0) { tbody.innerHTML = '<tr><td colspan="11" class="text-center">No matching records found</td></tr>'; return; }
+    records.forEach(r => {
+        const serialHistoryCount = groupMap && groupMap.has(r.serial) ? groupMap.get(r.serial).length : 0;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td><span class="sn-link" onclick="showRepairHistory('${escapeHtml(r.serial)}')">${escapeHtml(r.serial)}</span> <span class="history-count-badge">${serialHistoryCount}</span></td><td>${escapeHtml(r.tech)}</td><td>${formatYMD(parseDate(r.dateScanned))}</td><td>${escapeHtml(r.model || '')}</td><td>${escapeHtml(r.manufacturer || '')}</td><td>${escapeHtml(r.orig || '')}</td><td><strong>${escapeHtml(r.curr || '')}</strong></td><td><span class="badge-category ${r.category==='Repair Complete'?'bg-success':r.category==='Part Harvest'?'bg-warning text-dark':'bg-secondary'}">${r.category}</span></td><td>${serialHistoryCount}</td><td title="${escapeHtml(r.origComments || '')}">${truncate(r.origComments || '',55)}</td><td title="${escapeHtml(r.currComments || '')}">${truncate(r.currComments || '',55)}</td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+function renderCharts(records) {
+    const techMap = {}; const manufacturerMap = {};
+    records.forEach(r => {
+        if(!techMap[r.tech]) techMap[r.tech] = { "Repair Complete":0, "Part Harvest":0, "Sell As Is":0 };
+        techMap[r.tech][r.category]++;
+        const mfr = r.manufacturer || 'Unknown';
+        if(!manufacturerMap[mfr]) manufacturerMap[mfr] = { "Repair Complete":0, "Part Harvest":0, "Sell As Is":0, "Other":0 };
+        if(["Repair Complete", "Part Harvest", "Sell As Is"].includes(r.category)) manufacturerMap[mfr][r.category]++; else manufacturerMap[mfr]["Other"]++;
+    });
+    const techs = Object.keys(techMap).sort();
+    const manufacturers = Object.keys(manufacturerMap).sort((a,b) => { const totalA = Object.values(manufacturerMap[a]).reduce((s,v)=>s+v,0); const totalB = Object.values(manufacturerMap[b]).reduce((s,v)=>s+v,0); return totalB - totalA; });
+    if(distChart) distChart.destroy(); if(techChart) techChart.destroy(); if(manufacturerChart) manufacturerChart.destroy();
+    distChart = new Chart(document.getElementById('distributionChart'), { type:'doughnut', data:{ labels:['Repair Complete','Part Harvest','Sell As Is'], datasets:[{ data:[records.filter(r=>r.category==="Repair Complete").length, records.filter(r=>r.category==="Part Harvest").length, records.filter(r=>r.category==="Sell As Is").length], backgroundColor:['#2B9B5F','#F39C12','#7F8C8D'] }] }, options:{ responsive:true, maintainAspectRatio:false } });
+    techChart = new Chart(document.getElementById('techChart'), { type:'bar', data:{ labels:techs, datasets:[{ label:'Repair Complete', data:techs.map(t=>techMap[t]["Repair Complete"]), backgroundColor:'#2B9B5F'},{ label:'Part Harvest', data:techs.map(t=>techMap[t]["Part Harvest"]), backgroundColor:'#F39C12'},{ label:'Sell As Is', data:techs.map(t=>techMap[t]["Sell As Is"]), backgroundColor:'#7F8C8D'}] }, options:{ responsive:true, maintainAspectRatio:false, scales:{ x:{ stacked:true }, y:{ stacked:true, beginAtZero:true } } } });
+    if (manufacturers.length > 0) {
+        const mfrDatasets = [{ label: 'Repair Complete', data: manufacturers.map(m => manufacturerMap[m]["Repair Complete"]), backgroundColor: '#2B9B5F', borderRadius: 4, borderSkipped: false },{ label: 'Part Harvest', data: manufacturers.map(m => manufacturerMap[m]["Part Harvest"]), backgroundColor: '#F39C12', borderRadius: 4, borderSkipped: false },{ label: 'Sell As Is', data: manufacturers.map(m => manufacturerMap[m]["Sell As Is"]), backgroundColor: '#7F8C8D', borderRadius: 4, borderSkipped: false },{ label: 'Other', data: manufacturers.map(m => manufacturerMap[m]["Other"]), backgroundColor: '#bdc3c7', borderRadius: 4, borderSkipped: false }];
+        manufacturerChart = new Chart(document.getElementById('manufacturerChart'), { type: 'bar', data: { labels: manufacturers, datasets: mfrDatasets }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(10, 28, 42, 0.95)', titleColor: '#fff', bodyColor: '#fff', padding: 12, cornerRadius: 10, callbacks: { title: function(items) { return ' ' + items[0].label; }, label: function(context) { const value = context.parsed.y; const mfr = context.label; const total = Object.values(manufacturerMap[mfr]).reduce((s,v)=>s+v,0); const pct = total > 0 ? ((value/total)*100).toFixed(1) : 0; return ` ${context.dataset.label}: ${value} units (${pct}%)`; } } } }, scales: { x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10, weight: '600' }, color: '#2d3748', maxRotation: 45, minRotation: 0 } }, y: { stacked: true, beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 }, color: '#4a5568', precision: 0 } } } } });
+        const legendContainer = document.getElementById('mfrLegendContainer'); const categoryColors = { 'Repair Complete': '#2B9B5F', 'Part Harvest': '#F39C12', 'Sell As Is': '#7F8C8D', 'Other': '#bdc3c7' }; let legendHtml = '';
+        for (const [cat, color] of Object.entries(categoryColors)) { const total = manufacturers.reduce((sum, m) => sum + (manufacturerMap[m][cat] || 0), 0); legendHtml += `<div class="mfr-legend-item"><div class="mfr-legend-color" style="background:${color};"></div><span>${cat}: <strong>${total}</strong></span></div>`; }
+        legendContainer.innerHTML = legendHtml;
+    } else { const canvas = document.getElementById('manufacturerChart'); const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#718096'; ctx.font = '14px Inter, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('No manufacturer data available', canvas.width / 2, canvas.height / 2); document.getElementById('mfrLegendContainer').innerHTML = ''; }
+}
+
+function renderMonthlyTrendsChart() {
+    if (monthlyTrendsChart) monthlyTrendsChart.destroy();
+    const categoryFilter = document.getElementById('trendsCategoryFilter').value; const sortSelect = document.getElementById('trendsSortSelect').value;
+    const mfrData = {};
+    currentValidTransitions.forEach(r => { const mfr = r.manufacturer || 'Unknown'; if (!mfrData[mfr]) mfrData[mfr] = { "Repair Complete": 0, "Part Harvest": 0, "Sell As Is": 0, "Other": 0, total: 0 }; if (["Repair Complete", "Part Harvest", "Sell As Is"].includes(r.category)) mfrData[mfr][r.category]++; else mfrData[mfr]["Other"]++; mfrData[mfr].total++; });
+    let manufacturers = Object.keys(mfrData);
+    let dataValues = categoryFilter === 'all' ? manufacturers.map(m => mfrData[m].total) : manufacturers.map(m => mfrData[m][categoryFilter] || 0);
+    if (sortSelect === 'desc') { const combined = manufacturers.map((m, i) => ({ mfr: m, val: dataValues[i] })); combined.sort((a, b) => b.val - a.val); manufacturers = combined.map(c => c.mfr); dataValues = combined.map(c => c.val); }
+    else if (sortSelect === 'asc') { const combined = manufacturers.map((m, i) => ({ mfr: m, val: dataValues[i] })); combined.sort((a, b) => a.val - b.val); manufacturers = combined.map(c => c.mfr); dataValues = combined.map(c => c.val); }
+    else if (sortSelect === 'alpha') { const combined = manufacturers.map((m, i) => ({ mfr: m, val: dataValues[i] })); combined.sort((a, b) => a.mfr.localeCompare(b.mfr)); manufacturers = combined.map(c => c.mfr); dataValues = combined.map(c => c.val); }
+    const canvas = document.getElementById('monthlyTrendsChart'); const ctx = canvas.getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300); gradient.addColorStop(0, 'rgba(99, 102, 241, 0.25)'); gradient.addColorStop(1, 'rgba(99, 102, 241, 0.02)');
+    const chartLabel = categoryFilter === 'all' ? 'Complete' : categoryFilter;
+    monthlyTrendsChart = new Chart(ctx, { type: 'line', data: { labels: manufacturers, datasets: [{ label: chartLabel, data: dataValues, borderColor: '#6366f1', backgroundColor: gradient, borderWidth: 2.5, pointBackgroundColor: '#6366f1', pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6, fill: true, tension: 0.3 }] }, plugins: [ChartDataLabels], options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: true, position: 'top', labels: { font: { size: 11, weight: '600' }, color: '#2d3748', usePointStyle: true, pointStyle: 'rectRounded', padding: 10 } }, datalabels: { align: 'top', anchor: 'end', offset: 3, color: '#4a5568', font: { size: 9, weight: '600' }, formatter: function(value) { return value > 0 ? value : ''; }, display: function(context) { return context.dataset.data[context.dataIndex] > 0; } }, tooltip: { backgroundColor: 'rgba(10, 28, 42, 0.95)', titleColor: '#fff', bodyColor: '#fff', padding: 10, cornerRadius: 10, callbacks: { title: function(items) { return ' ' + items[0].label; }, label: function(context) { const mfr = context.label; if (categoryFilter === 'all') { const d = mfrData[mfr]; return [` Total: ${context.parsed.y}`, `  Repair: ${d["Repair Complete"]}`, `  Harvest: ${d["Part Harvest"]}`, `  Sell: ${d["Sell As Is"]}`]; } return ` ${context.dataset.label}: ${context.parsed.y}`; } } } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 9, weight: '600' }, color: '#4a5568', maxRotation: 45, minRotation: 30 } }, y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { font: { size: 10 }, color: '#4a5568', precision: 0 } } } } });
+}
+
+function renderDailyOutputChart() {
+    if (dailyOutputChart) dailyOutputChart.destroy();
+    const canvas = document.getElementById('dailyOutputChart'); const ctx = canvas.getContext('2d');
+    const dailyMap = new Map(); currentValidTransitions.forEach(r => { const dateStr = formatYMD(parseDate(r.dateScanned)); if (dateStr) { if (!dailyMap.has(dateStr)) dailyMap.set(dateStr, new Set()); dailyMap.get(dateStr).add(r.serial); } });
+    const sortedDates = [...dailyMap.keys()].sort(); const dateLabels = sortedDates.map(d => { const parts = d.split('-'); return `${parts[1]}-${parts[2]}`; });
+    const unitCounts = sortedDates.map(d => dailyMap.get(d).size);
+    const barGradient = ctx.createLinearGradient(0, 0, 0, 300); barGradient.addColorStop(0, '#8b5cf6'); barGradient.addColorStop(1, '#6d28d9');
+    dailyOutputChart = new Chart(ctx, { type: 'bar', data: { labels: dateLabels, datasets: [{ label: 'Units', data: unitCounts, backgroundColor: barGradient, borderColor: '#7c3aed', borderWidth: 1, borderRadius: 4, borderSkipped: false, barPercentage: 0.7, categoryPercentage: 0.85 }] }, plugins: [ChartDataLabels], options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: true, position: 'top', labels: { font: { size: 11, weight: '600' }, color: '#2d3748', usePointStyle: true, pointStyle: 'rectRounded', padding: 10 } }, datalabels: { align: 'top', anchor: 'end', offset: 2, color: '#4a5568', font: { size: 9, weight: '600' }, formatter: function(value) { return value > 0 ? value : ''; }, display: function(context) { return context.dataset.data[context.dataIndex] > 0; } }, tooltip: { backgroundColor: 'rgba(10, 28, 42, 0.95)', titleColor: '#fff', bodyColor: '#fff', padding: 10, cornerRadius: 10, callbacks: { title: function(items) { const idx = items[0].dataIndex; return ' ' + sortedDates[idx]; }, label: function(context) { return ` Units: ${context.parsed.y}`; } } } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 9, weight: '600' }, color: '#4a5568', maxRotation: 45, minRotation: 30 } }, y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { font: { size: 10 }, color: '#4a5568', precision: 0 } } } } });
+}
+
+function renderTechOutputChart(techAgg) {
+    if (techOutputChart) techOutputChart.destroy();
+    const canvas = document.getElementById('techOutputChart'); const ctx = canvas.getContext('2d');
+    const techData = []; for (const [tech, stats] of techAgg.entries()) { const total = stats.repair + stats.harvest + stats.sell; const isBoardLevel = tech.toUpperCase().includes("ASA") || tech.toUpperCase().includes("LXU") || tech.toUpperCase().includes("TTH"); techData.push({ tech, total, isBoardLevel, repair: stats.repair, harvest: stats.harvest, sell: stats.sell }); }
+    techData.sort((a, b) => b.total - a.total);
+    const labels = techData.map(d => d.tech); const totals = techData.map(d => d.total);
+    const colors = techData.map(d => (d.isBoardLevel || d.total < 100) ? '#ef4444' : '#10b981');
+    const hoverColors = techData.map(d => (d.isBoardLevel || d.total < 100) ? '#dc2626' : '#059669');
+    techOutputChart = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ label: 'Repairs', data: totals, backgroundColor: colors, hoverBackgroundColor: hoverColors, borderWidth: 0, borderRadius: 4, borderSkipped: false, barPercentage: 0.75, categoryPercentage: 0.85 }] }, plugins: [ChartDataLabels], options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: true, position: 'top', labels: { font: { size: 11, weight: '600' }, color: '#2d3748', usePointStyle: true, pointStyle: 'rectRounded', padding: 10 } }, datalabels: { align: 'top', anchor: 'end', offset: 2, color: '#4a5568', font: { size: 9, weight: '600' }, formatter: function(value) { return value > 0 ? value : ''; }, display: function(context) { return context.dataset.data[context.dataIndex] > 0; } }, tooltip: { backgroundColor: 'rgba(10, 28, 42, 0.95)', titleColor: '#fff', bodyColor: '#fff', padding: 10, cornerRadius: 10, callbacks: { title: function(items) { const idx = items[0].dataIndex; const d = techData[idx]; return ' ' + d.tech + (d.isBoardLevel ? ' (Board Level)' : ''); }, label: function(context) { const idx = context.dataIndex; const d = techData[idx]; return [` Total: ${d.total}`, `  Repair: ${d.repair}`, `  Harvest: ${d.harvest}`, `  Sell: ${d.sell}`]; } } } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 10, weight: '600' }, color: '#4a5568', maxRotation: 0, minRotation: 0 } }, y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { font: { size: 10 }, color: '#4a5568', precision: 0 } } } } });
+}
+
+function renderGradeCategoriesChart(records) {
+    if (gradeCategoriesChart) gradeCategoriesChart.destroy();
+    const canvas = document.getElementById('gradeCategoriesChart'); const ctx = canvas.getContext('2d');
+    const gradeCategories = { 'Repair (CLASS R/A/B/C, GRADE A/B/C/E/R/F)': 0, 'Sell (RFR/SCRAP)': 0, 'Harvest (SALVAGED)': 0, 'Other': 0 };
+    records.forEach(r => { const curr = (r.curr || '').toString().trim().toUpperCase(); if (curr.includes('CLASS') || curr.includes('GRADE') || curr === 'REPAIRED' || curr === 'A' || curr === 'B' || curr === 'C' || curr === 'E' || curr === 'R' || curr === 'F') gradeCategories['Repair (CLASS R/A/B/C, GRADE A/B/C/E/R/F)']++; else if (curr === 'RFR' || curr === 'SCRAP') gradeCategories['Sell (RFR/SCRAP)']++; else if (curr === 'SALVAGED') gradeCategories['Harvest (SALVAGED)']++; else gradeCategories['Other']++; });
+    const labels = Object.keys(gradeCategories); const data = Object.values(gradeCategories);
+    const colors = ['#3b82f6', '#ef4444', '#10b981', '#9ca3af']; const hoverColors = ['#2563eb', '#dc2626', '#059669', '#6b7280'];
+    gradeCategoriesChart = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ label: 'Units', data, backgroundColor: colors, hoverBackgroundColor: hoverColors, borderWidth: 0, borderRadius: 4, borderSkipped: false, barPercentage: 0.65, categoryPercentage: 0.8 }] }, plugins: [ChartDataLabels], options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: true, position: 'top', labels: { font: { size: 11, weight: '600' }, color: '#2d3748', usePointStyle: true, pointStyle: 'rectRounded', padding: 10 } }, datalabels: { align: 'top', anchor: 'end', offset: 3, color: '#4a5568', font: { size: 10, weight: '700' }, formatter: function(value) { return value > 0 ? value : ''; }, display: function(context) { return context.dataset.data[context.dataIndex] > 0; } }, tooltip: { backgroundColor: 'rgba(10, 28, 42, 0.95)', titleColor: '#fff', bodyColor: '#fff', padding: 10, cornerRadius: 10, callbacks: { title: function(items) { return '️ ' + items[0].label; }, label: function(context) { const total = data.reduce((a, b) => a + b, 0); const pct = total > 0 ? ((context.parsed.y / total) * 100).toFixed(1) : 0; return ` Units: ${context.parsed.y} (${pct}%)`; } } } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 9, weight: '600' }, color: '#4a5568', maxRotation: 25, minRotation: 15 } }, y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { font: { size: 10 }, color: '#4a5568', precision: 0 } } } } });
+}
+
+function renderCurrentGradeSummary(records) {
+    const gradeCounts = {}; let repairTotal = 0, sellTotal = 0, harvestTotal = 0, otherTotal = 0;
+    records.forEach(r => { const curr = (r.curr || '').toString().trim(); const currUpper = curr.toUpperCase(); const group = getRawConditionGroup(currUpper); if (!gradeCounts[group]) gradeCounts[group] = 0; gradeCounts[group]++; if (group === 'Class A' || group === 'Class B' || group === 'Class C' || group === 'Repaired') repairTotal++; else if (group === 'RFR' || group === 'Scrap') sellTotal++; else if (group === 'Salvaged') harvestTotal++; else otherTotal++; });
+    document.getElementById('gsRepair').innerText = repairTotal; document.getElementById('gsSell').innerText = sellTotal; document.getElementById('gsHarvest').innerText = harvestTotal; document.getElementById('gsOther').innerText = otherTotal;
+    const total = Object.values(gradeCounts).reduce((a, b) => a + b, 0); document.getElementById('gsTotal').innerText = total;
+}
+
+function renderGradeBarChart(records) {
+    if (gradeBarChart) gradeBarChart.destroy();
+    const canvas = document.getElementById('gradeBarChart'); const ctx = canvas.getContext('2d');
+    const conditionCounts = {}; const otherConditions = new Set();
+    records.forEach(r => { const curr = (r.curr || '').toString().trim(); const currUpper = curr.toUpperCase(); const group = getRawConditionGroup(currUpper); if (!conditionCounts[group]) conditionCounts[group] = 0; conditionCounts[group]++; if (group === 'Other') otherConditions.add(curr || 'Unknown'); });
+    const otherConditionCounts = {};
+    records.forEach(r => { const curr = (r.curr || '').toString().trim(); const currUpper = curr.toUpperCase(); const group = getRawConditionGroup(currUpper); if (group === 'Other') { const key = curr || 'Unknown'; if (!otherConditionCounts[key]) otherConditionCounts[key] = 0; otherConditionCounts[key]++; } });
+    const allConditions = [];
+    for (const [condition, count] of Object.entries(conditionCounts)) { if (condition !== 'Other') allConditions.push({ condition, count, isOther: false }); }
+    for (const [condition, count] of Object.entries(otherConditionCounts)) { allConditions.push({ condition, count, isOther: true }); }
+    allConditions.sort((a, b) => b.count - a.count);
+    const labels = allConditions.map(c => c.condition); const data = allConditions.map(c => c.count);
+    const backgroundColors = allConditions.map(c => c.isOther ? '#f59e0b' : '#3b82f6');
+    const hoverBackgroundColors = allConditions.map(c => c.isOther ? '#d97706' : '#2563eb');
+    const borderColors = allConditions.map(c => c.isOther ? '#d97706' : '#2563eb');
+    gradeBarChart = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ label: 'Units', data, backgroundColor: backgroundColors, hoverBackgroundColor: hoverBackgroundColors, borderColor: borderColors, borderWidth: 1, borderRadius: 4, borderSkipped: false, barPercentage: 0.75, categoryPercentage: 0.85 }] }, plugins: [ChartDataLabels], options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: true, position: 'top', labels: { font: { size: 10, weight: '600' }, color: '#2d3748', usePointStyle: true, pointStyle: 'rectRounded', padding: 10, generateLabels: function(chart) { return [{ text: 'Main Grades', fillStyle: '#3b82f6', strokeStyle: '#2563eb', lineWidth: 1, hidden: false, index: 0 }, { text: 'Other Conditions', fillStyle: '#f59e0b', strokeStyle: '#d97706', lineWidth: 1, hidden: false, index: 1 }]; } } }, datalabels: { align: 'top', anchor: 'end', offset: 2, color: '#4a5568', font: { size: 9, weight: '700' }, formatter: function(value) { return value > 0 ? value : ''; }, display: function(context) { return context.dataset.data[context.dataIndex] > 0; } }, tooltip: { backgroundColor: 'rgba(10, 28, 42, 0.95)', titleColor: '#fff', bodyColor: '#fff', padding: 10, cornerRadius: 10, titleFont: { size: 12, weight: 'bold' }, bodyFont: { size: 11 }, callbacks: { title: function(items) { const idx = items[0].dataIndex; const cond = allConditions[idx]; return (cond.isOther ? ' Other: ' : ' ') + cond.condition; }, label: function(context) { const idx = context.dataIndex; const cond = allConditions[idx]; const total = data.reduce((a, b) => a + b, 0); const pct = total > 0 ? ((context.parsed.y / total) * 100).toFixed(1) : 0; return [` Units: ${context.parsed.y}`, ` Share: ${pct}% of total`, ` Type: ${cond.isOther ? 'Other Condition' : 'Main Grade'}`]; } } } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 9, weight: '600' }, color: '#4a5568', maxRotation: 45, minRotation: 30 } }, y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { font: { size: 10 }, color: '#4a5568', precision: 0 }, title: { display: true, text: 'Units', color: '#4a5568', font: { size: 11, weight: '600' } } } } } });
+}
+
+function renderTopTransitions(records) {
+    const container = document.getElementById('transitionsList');
+    if (!records || records.length === 0) { container.innerHTML = '<div class="text-center text-muted py-4">No transition data available</div>'; return; }
+    const transitionCounts = {}; records.forEach(r => { const orig = (r.orig || '').toString().trim().toUpperCase(); const curr = (r.curr || '').toString().trim(); const key = `${orig}→${curr}`; if (!transitionCounts[key]) transitionCounts[key] = 0; transitionCounts[key]++; });
+    const transitions = Object.entries(transitionCounts).map(([transition, count]) => ({ transition, count })).sort((a, b) => b.count - a.count).slice(0, 10);
+    if (transitions.length === 0) { container.innerHTML = '<div class="text-center text-muted py-4">No transition data available</div>'; return; }
+    let html = ''; transitions.forEach(({ transition, count }) => { const [from, to] = transition.split('→'); html += `<div class="transition-item"><div class="transition-label"><span class="transition-from">${escapeHtml(from)}</span><span class="transition-arrow">→</span><span class="transition-to">${escapeHtml(to)}</span></div><div class="transition-count">${count}</div></div>`; });
+    container.innerHTML = html;
+}
+
+function renderMonthlyCompleteChart() {
+    if (monthlyCompleteChart) monthlyCompleteChart.destroy();
+    const canvas = document.getElementById('monthlyCompleteChart'); const ctx = canvas.getContext('2d');
+    const complete = currentValidTransitions.length; const total = currentTotalUnits; const incomplete = Math.max(0, total - complete);
+    const startVal = document.getElementById('startDate').value; const endVal = document.getElementById('endDate').value;
+    let monthLabel = 'Current Period';
+    if (startVal && endVal) { const startParts = startVal.split('-'); const endParts = endVal.split('-'); if (startParts[0] === endParts[0] && startParts[1] === endParts[1]) monthLabel = `${startParts[0]}-${startParts[1]}`; else monthLabel = `${startParts[1]}/${startParts[0]} - ${endParts[1]}/${endParts[0]}`; }
+    const completePct = total > 0 ? ((complete / total) * 100).toFixed(1) : 0; const incompletePct = total > 0 ? ((incomplete / total) * 100).toFixed(1) : 0;
+    document.getElementById('csComplete').innerText = complete; document.getElementById('csIncomplete').innerText = incomplete; document.getElementById('csTotal').innerText = total;
+    document.getElementById('csCompletePct').innerText = `${completePct}%`; document.getElementById('csIncompletePct').innerText = `${incompletePct}%`;
+    document.getElementById('cpComplete').style.width = `${completePct}%`; document.getElementById('cpIncomplete').style.width = `${incompletePct}%`;
+    monthlyCompleteChart = new Chart(ctx, { type: 'bar', data: { labels: [monthLabel], datasets: [{ label: 'Complete', data: [complete], backgroundColor: '#10b981', hoverBackgroundColor: '#059669', borderWidth: 0, borderRadius: 4, borderSkipped: false, barPercentage: 0.5, categoryPercentage: 0.7 }, { label: 'Incomplete', data: [incomplete], backgroundColor: '#ef4444', hoverBackgroundColor: '#dc2626', borderWidth: 0, borderRadius: 4, borderSkipped: false, barPercentage: 0.5, categoryPercentage: 0.7 }] }, plugins: [ChartDataLabels], options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: true, position: 'top', labels: { font: { size: 11, weight: '600' }, color: '#2d3748', usePointStyle: true, pointStyle: 'rectRounded', padding: 15 } }, datalabels: { align: 'top', anchor: 'end', offset: 3, color: '#4a5568', font: { size: 10, weight: '700' }, formatter: function(value) { return value > 0 ? value : ''; }, display: function(context) { return context.dataset.data[context.dataIndex] > 0; } }, tooltip: { backgroundColor: 'rgba(10, 28, 42, 0.95)', titleColor: '#fff', bodyColor: '#fff', padding: 12, cornerRadius: 10, titleFont: { size: 13, weight: 'bold' }, bodyFont: { size: 12 }, callbacks: { title: function(items) { return '📊 ' + items[0].label; }, label: function(context) { const val = context.parsed.y; const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0; return ` ${context.dataset.label}: ${val} units (${pct}%)`; }, afterBody: function() { return [`Total: ${total} units`, `  Completion Rate: ${completePct}%`]; } } } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 11, weight: '600' }, color: '#4a5568' } }, y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { font: { size: 10 }, color: '#4a5568', precision: 0 }, title: { display: false } } } } });
+}
+
+function getMonthlyProcessedData() {
+    const startInput = document.getElementById('startDate').value;
+    const endInput = document.getElementById('endDate').value;
+    if (!startInput || !endInput) return { monthLabels: [], monthlyData: [], cumulativeData: [] };
+    const startDate = parseLocalDate(startInput);
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = parseLocalDate(endInput);
+    endDate.setHours(23, 59, 59, 999);
+    const monthLabels = [];
+    const currentDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+    const endMonth = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+    while (currentDate <= endMonth) {
+        const monthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        monthLabels.push({
+            key: monthKey,
+            label: `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`,
+            monthName: monthNames[currentDate.getMonth()],
+            year: currentDate.getFullYear()
+        });
+        currentDate.setMonth(currentDate.getMonth() + 1);
+    }
+    const monthlySerialsMap = new Map();
+    monthLabels.forEach((m, index) => {
+        monthlySerialsMap.set(index, new Set());
+    });
+    currentValidTransitions.forEach(r => {
+        const date = parseDate(r.dateScanned);
+        if (date && date >= startDate && date <= endDate) {
+            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            const index = monthLabels.findIndex(m => m.key === monthKey);
+            if (index !== -1) {
+                monthlySerialsMap.get(index).add(r.serial);
+            }
+        }
+    });
+    const monthlyData = monthLabels.map((_, index) => monthlySerialsMap.get(index).size);
+    let cumulative = 0;
+    const cumulativeData = monthlyData.map(v => {
+        cumulative += v;
+        return cumulative;
+    });
+    return { monthLabels, monthlyData, cumulativeData };
+}
+
+function renderMonthlyProcessedChart() {
+    if (monthlyProcessedChart) monthlyProcessedChart.destroy();
+    const canvas = document.getElementById('monthlyProcessedChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const { monthLabels, monthlyData } = getMonthlyProcessedData();
+    if (monthLabels.length === 0) return;
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, '#3b82f6');
+    gradient.addColorStop(1, '#1d4ed8');
+    monthlyProcessedChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: monthLabels.map(m => m.label),
+            datasets: [{
+                label: 'Total Processed',
+                data: monthlyData,
+                backgroundColor: gradient,
+                borderColor: '#2563eb',
+                borderWidth: 1,
+                borderRadius: 6,
+                borderSkipped: false,
+                barPercentage: 0.6,
+                categoryPercentage: 0.8
+            }]
+        },
+        plugins: [ChartDataLabels],
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: true, position: 'top', labels: { font: { size: 11, weight: '600' }, color: '#2d3748', usePointStyle: true, pointStyle: 'rectRounded', padding: 10 } },
+                datalabels: {
+                    align: 'top', anchor: 'end', offset: 3, color: '#4a5568',
+                    font: { size: 10, weight: '700' },
+                    formatter: function(value) { return value > 0 ? value : ''; },
+                    display: function(context) { return context.dataset.data[context.dataIndex] > 0; }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(10, 28, 42, 0.95)', titleColor: '#fff', bodyColor: '#fff', padding: 10, cornerRadius: 10,
+                    callbacks: {
+                        title: function(items) { return '📅 ' + items[0].label; },
+                        label: function(context) { return ` Processed: ${context.parsed.y} unique units`; }
+                    }
+                }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { font: { size: 10, weight: '600' }, color: '#4a5568', maxRotation: 45, minRotation: 0 } },
+                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { font: { size: 10 }, color: '#4a5568', precision: 0 }, title: { display: true, text: 'Units Processed', color: '#4a5568', font: { size: 11, weight: '600' } } }
+            }
+        }
+    });
+}
+
+function renderMonthlyTrendLineChart() {
+    if (monthlyTrendLineChart) monthlyTrendLineChart.destroy();
+    const canvas = document.getElementById('monthlyTrendLineChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const { monthLabels, monthlyData, cumulativeData } = getMonthlyProcessedData();
+    if (monthLabels.length === 0) return;
+    const nonZeroData = monthlyData.filter(v => v > 0);
+    const totalUnits = monthlyData.reduce((a, b) => a + b, 0);
+    const avgPerMonth = nonZeroData.length > 0 ? (totalUnits / nonZeroData.length) : 0;
+    const maxMonth = Math.max(...monthlyData);
+    const peakMonthIndex = monthlyData.indexOf(maxMonth);
+    const peakMonthLabel = peakMonthIndex >= 0 ? monthLabels[peakMonthIndex].label : 'N/A';
+    let momChange = null;
+    let momClass = 'trend-neutral';
+    let momIcon = 'fa-minus';
+    if (nonZeroData.length >= 2) {
+        const last = monthlyData[monthlyData.length - 1];
+        const prev = monthlyData[monthlyData.length - 2];
+        if (prev > 0) {
+            momChange = ((last - prev) / prev * 100).toFixed(1);
+            if (momChange > 0) { momClass = 'trend-up'; momIcon = 'fa-arrow-trend-up'; }
+            else if (momChange < 0) { momClass = 'trend-down'; momIcon = 'fa-arrow-trend-down'; }
+        }
+    }
+    const statsContainer = document.getElementById('monthlyTrendStats');
+    let statsHtml = `
+    <div class="trend-stat-pill">
+    <i class="fas fa-layer-group text-primary"></i>
+    <div>
+    <div class="trend-label">Total Months</div>
+    <div class="trend-value">${monthLabels.length}</div>
+    </div>
+    </div>
+    <div class="trend-stat-pill">
+    <i class="fas fa-boxes-stacked text-success"></i>
+    <div>
+    <div class="trend-label">Total Units</div>
+    <div class="trend-value">${totalUnits}</div>
+    </div>
+    </div>
+    <div class="trend-stat-pill">
+    <i class="fas fa-chart-line text-info"></i>
+    <div>
+    <div class="trend-label">Avg / Month</div>
+    <div class="trend-value">${avgPerMonth.toFixed(1)}</div>
+    </div>
+    </div>
+    <div class="trend-stat-pill">
+    <i class="fas fa-trophy text-warning"></i>
+    <div>
+    <div class="trend-label">Peak Month</div>
+    <div class="trend-value">${peakMonthLabel} (${maxMonth})</div>
+    </div>
+    </div>`;
+    if (momChange !== null) {
+        statsHtml += `
+        <div class="trend-stat-pill">
+        <i class="fas ${momIcon} ${momClass}"></i>
+        <div>
+        <div class="trend-label">MoM Change</div>
+        <div class="trend-value ${momClass}">${momChange > 0 ? '+' : ''}${momChange}%</div>
+        </div>
+        </div>`;
+    }
+    statsContainer.innerHTML = statsHtml;
+    const gradient = ctx.createLinearGradient(0, 0, 0, 380);
+    gradient.addColorStop(0, 'rgba(99, 102, 241, 0.45)');
+    gradient.addColorStop(0.7, 'rgba(99, 102, 241, 0.05)');
+    gradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
+    monthlyTrendLineChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: monthLabels.map(m => m.label),
+            datasets: [{
+                label: 'Monthly Processed',
+                data: monthlyData,
+                borderColor: '#6366f1',
+                backgroundColor: gradient,
+                borderWidth: 3,
+                pointBackgroundColor: '#6366f1',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2.5,
+                pointRadius: 6,
+                pointHoverRadius: 9,
+                fill: true,
+                tension: 0.4,
+                yAxisID: 'y'
+            }, {
+                label: 'Cumulative Total',
+                data: cumulativeData,
+                borderColor: '#10b981',
+                backgroundColor: 'transparent',
+                borderWidth: 2.5,
+                borderDash: [6, 4],
+                pointBackgroundColor: '#10b981',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 7,
+                fill: false,
+                tension: 0.3,
+                yAxisID: 'y1'
+            }]
+        },
+        plugins: [ChartDataLabels],
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: true, position: 'top', labels: { font: { size: 11, weight: '600' }, color: '#2d3748', usePointStyle: true, pointStyle: 'rectRounded', padding: 12 } },
+                datalabels: {
+                    align: 'top', anchor: 'end', offset: 4, color: '#4a5568',
+                    font: { size: 10, weight: '700' },
+                    formatter: function(value, context) {
+                        if (context.datasetIndex === 0) return value > 0 ? value : '';
+                        return '';
+                    },
+                    display: function(context) {
+                        return context.datasetIndex === 0 && context.dataset.data[context.dataIndex] > 0;
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(10, 28, 42, 0.95)', titleColor: '#fff', bodyColor: '#fff', padding: 12, cornerRadius: 10,
+                    callbacks: {
+                        title: function(items) { return '📅 ' + items[0].label; },
+                        label: function(context) {
+                            if (context.datasetIndex === 0) return ` Processed: ${context.parsed.y} units`;
+                            return ` Cumulative: ${context.parsed.y} units`;
+                        },
+                        afterBody: function(items) {
+                            const idx = items[0].dataIndex;
+                            const monthly = monthlyData[idx];
+                            const total = totalUnits;
+                            const pct = total > 0 ? ((monthly / total) * 100).toFixed(1) : 0;
+                            return [``, `  Share of Total: ${pct}%`];
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { font: { size: 10, weight: '600' }, color: '#4a5568', maxRotation: 45, minRotation: 0 } },
+                y: {
+                    beginAtZero: true,
+                    position: 'left',
+                    grid: { color: 'rgba(0,0,0,0.06)' },
+                    ticks: { font: { size: 10 }, color: '#6366f1', precision: 0 },
+                    title: { display: true, text: 'Monthly Units', color: '#6366f1', font: { size: 11, weight: '600' } }
+                },
+                y1: {
+                    beginAtZero: true,
+                    position: 'right',
+                    grid: { drawOnChartArea: false },
+                    ticks: { font: { size: 10 }, color: '#10b981', precision: 0 },
+                    title: { display: true, text: 'Cumulative Total', color: '#10b981', font: { size: 11, weight: '600' } }
+                }
+            }
+        }
+    });
+}
+
+function renderMonthlyBlocks() {
+    const container = document.getElementById('monthlyBlocksContainer');
+    const totalSummary = document.getElementById('monthlyTotalSummary');
+    const { monthLabels, monthlyData } = getMonthlyProcessedData();
+    if (monthLabels.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No data available for the selected date range.</div>';
+        totalSummary.innerHTML = '';
+        return;
+    }
+    const totalUnits = monthlyData.reduce((a, b) => a + b, 0);
+    const maxMonth = Math.max(...monthlyData);
+    const peakMonthIndex = monthlyData.indexOf(maxMonth);
+    const activeMonths = monthlyData.filter(v => v > 0).length;
+    const avgPerMonth = activeMonths > 0 ? (totalUnits / activeMonths) : 0;
+    const startInput = document.getElementById('startDate').value;
+    const endInput = document.getElementById('endDate').value;
+    const startDate = parseLocalDate(startInput); startDate.setHours(0, 0, 0, 0);
+    const endDate = parseLocalDate(endInput); endDate.setHours(23, 59, 59, 999);
+    const allSerialsSet = new Set();
+    currentValidTransitions.forEach(r => {
+        const date = parseDate(r.dateScanned);
+        if (date && date >= startDate && date <= endDate) {
+            allSerialsSet.add(r.serial);
+        }
+    });
+    const totalUniqueSerials = allSerialsSet.size;
+    const monthIcons = ['', '📅', '', '', '📅', '📅', '📅', '', '📅', '📅', '', '📅'];
+    let html = '';
+    monthLabels.forEach((month, index) => {
+        const count = monthlyData[index];
+        const isPeak = index === peakMonthIndex && count > 0;
+        const isZero = count === 0;
+        const pct = totalUnits > 0 ? ((count / totalUnits) * 100).toFixed(1) : 0;
+        let cardClass = 'month-block-card';
+        if (isPeak) cardClass += ' peak-month';
+        if (isZero) cardClass += ' zero-month';
+        html += `
+        <div class="${cardClass}">
+        ${isPeak ? '<div class="month-block-badge"><i class="fas fa-trophy me-1"></i>Peak</div>' : ''}
+        <div class="month-block-icon">${monthIcons[monthLabels[index].key.split('-')[1] - 1] || '📅'}</div>
+        <div class="month-block-name">${month.monthName}</div>
+        <div class="month-block-year">${month.year}</div>
+        <div class="month-block-value">${count}</div>
+        <div class="month-block-pct ${isPeak ? 'peak' : ''}">${pct}% of total</div>
+        </div>
+        `;
+    });
+    container.innerHTML = html;
+    totalSummary.innerHTML = `
+    <div class="monthly-total-item">
+    <div class="monthly-total-label">Total Months</div>
+    <div class="monthly-total-value">${monthLabels.length}</div>
+    </div>
+    <div class="monthly-total-item">
+    <div class="monthly-total-label">Active Months</div>
+    <div class="monthly-total-value">${activeMonths}</div>
+    </div>
+    <div class="monthly-total-item">
+    <div class="monthly-total-label">Sum of Blocks</div>
+    <div class="monthly-total-value">${totalUnits}</div>
+    </div>
+    <div class="monthly-total-item">
+    <div class="monthly-total-label">Total Unique Devices</div>
+    <div class="monthly-total-value">${totalUniqueSerials}</div>
+    </div>
+    <div class="monthly-total-item">
+    <div class="monthly-total-label">Total Transitions</div>
+    <div class="monthly-total-value">${currentValidTransitions.length}</div>
+    </div>
+    <div class="monthly-total-item">
+    <div class="monthly-total-label">Avg / Active Month</div>
+    <div class="monthly-total-value">${avgPerMonth.toFixed(1)}</div>
+    </div>
+    `;
+}
+
+function updateVtSummaryBar() {
+    const total = masterDetailRecords.length;
+    const repairCount = masterDetailRecords.filter(r => r.category === 'Repair Complete').length;
+    const harvestCount = masterDetailRecords.filter(r => r.category === 'Part Harvest').length;
+    const sellCount = masterDetailRecords.filter(r => r.category === 'Sell As Is').length;
+    const otherCount = masterDetailRecords.filter(r => r.category === 'Other').length;
+    document.getElementById('vtTotalCount').innerText = total; document.getElementById('vtRepairCount').innerText = repairCount;
+    document.getElementById('vtHarvestCount').innerText = harvestCount; document.getElementById('vtSellCount').innerText = sellCount;
+    document.getElementById('vtOtherCount').innerText = otherCount;
+    document.getElementById('pillAllCount').innerText = total; document.getElementById('pillRepairCount').innerText = repairCount;
+    document.getElementById('pillHarvestCount').innerText = harvestCount; document.getElementById('pillSellCount').innerText = sellCount;
+    document.getElementById('pillOtherCount').innerText = otherCount;
+    const filtered = applyVtFilters(masterDetailRecords); document.getElementById('vtShowingCount').innerText = filtered.length;
+    const resetBtn = document.getElementById('vtResetBtn'); if (vtCategoryFilter || vtSearchTerm) resetBtn.classList.add('show'); else resetBtn.classList.remove('show');
+}
+
+function applyVtFilters(records) {
+    return records.filter(r => {
+        const matchesCategory = !vtCategoryFilter || r.category === vtCategoryFilter;
+        let matchesSearch = true;
+        if (vtSearchTerm) { const searchLower = vtSearchTerm.toLowerCase(); matchesSearch = (r.serial || '').toLowerCase().includes(searchLower) || (r.tech || '').toLowerCase().includes(searchLower) || (r.model || '').toLowerCase().includes(searchLower) || (r.manufacturer || '').toLowerCase().includes(searchLower) || (r.curr || '').toLowerCase().includes(searchLower) || (r.orig || '').toLowerCase().includes(searchLower); }
+        return matchesCategory && matchesSearch;
+    });
+}
+
+function filterByCategory(category, element) {
+    vtCategoryFilter = category; document.querySelectorAll('.vt-pill').forEach(pill => pill.classList.remove('active')); if (element) element.classList.add('active');
+    const filtered = applyVtFilters(masterDetailRecords); const sorted = applySortToRecords(filtered); renderDetailTable(sorted, masterGroupMap); updateVtSummaryBar();
+}
+
+function handleVtSearch() { vtSearchTerm = document.getElementById('vtSearchInput').value.trim(); const filtered = applyVtFilters(masterDetailRecords); const sorted = applySortToRecords(filtered); renderDetailTable(sorted, masterGroupMap); updateVtSummaryBar(); }
+
+function resetVtFilters() {
+    vtCategoryFilter = ''; vtSearchTerm = ''; currentSortColumn = ''; currentSortDirection = 'asc';
+    document.getElementById('vtSearchInput').value = ''; document.querySelectorAll('.vt-pill').forEach(pill => pill.classList.remove('active'));
+    document.querySelector('.vt-pill-all').classList.add('active');
+    document.querySelectorAll('.sort-icon').forEach(icon => { icon.classList.remove('active-asc', 'active-desc'); icon.innerHTML = '<i class="fas fa-sort"></i>'; });
+    renderDetailTable(masterDetailRecords, masterGroupMap); updateVtSummaryBar();
+}
+
+function applySortToRecords(records) {
+    if (!currentSortColumn) return records;
+    return [...records].sort((a, b) => {
+        let valA = a[currentSortColumn]; let valB = b[currentSortColumn];
+        if (currentSortColumn === 'dateScanned') { valA = parseDate(valA) || new Date(0); valB = parseDate(valB) || new Date(0); }
+        else if (typeof valA === 'string') { valA = valA.toLowerCase(); valB = valB.toLowerCase(); }
+        if (valA < valB) return currentSortDirection === 'asc' ? -1 : 1; if (valA > valB) return currentSortDirection === 'asc' ? 1 : -1; return 0;
+    });
+}
+
+function sortTable(column) {
+    if (!masterDetailRecords || masterDetailRecords.length === 0) return;
+    if (currentSortColumn === column) currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+    else { currentSortColumn = column; currentSortDirection = 'asc'; }
+    document.querySelectorAll('.sort-icon').forEach(icon => { icon.classList.remove('active-asc', 'active-desc'); icon.innerHTML = '<i class="fas fa-sort"></i>'; });
+    const activeIcon = document.getElementById('sort-' + column);
+    if (activeIcon) { activeIcon.classList.add(currentSortDirection === 'asc' ? 'active-asc' : 'active-desc'); activeIcon.innerHTML = currentSortDirection === 'asc' ? '<i class="fas fa-sort-up"></i>' : '<i class="fas fa-sort-down"></i>'; }
+    const filtered = applyVtFilters(masterDetailRecords); const sorted = applySortToRecords(filtered); renderDetailTable(sorted, masterGroupMap);
+}
+
+function performModalSerialSearch() { 
+    const serial = document.getElementById('modalSerialInput').value.trim(); 
+    if(!serial) return; 
+    const start = parseLocalDate(document.getElementById('startDate').value);
+    const end = parseLocalDate(document.getElementById('endDate').value); 
+    if(!start || !end || isNaN(start.getTime()) || isNaN(end.getTime())){ 
+        alert("Set date range"); return; 
+    } 
+    start.setHours(0,0,0,0);
+    end.setHours(23,59,59,999);
+    const history = getFullHistoryForSerial(serial, start, end); 
+    const resultDiv = document.getElementById('modalSearchResultArea'); 
+    if(!history.length) { resultDiv.innerHTML = `<div class="alert alert-warning">No records for ${escapeHtml(serial)}</div>`; return; } 
+    let cards = `<div class="fw-bold mb-2">${history.length} records for ${escapeHtml(serial)}</div>`; 
+    history.forEach((rec,idx)=>{ 
+        const origComm = escapeHtml(rec['ORIGINAL COMMENTS']||'—').replace(/\n/g,'<br>'); 
+        const currComm = escapeHtml(rec['CURRENT COMMENTS']||'—').replace(/\n/g,'<br>'); 
+        cards += `<div class="card mb-2"><div class="card-body"><div class="d-flex gap-2"><span>#${idx+1}</span><span>${formatYMD(parseDate(rec['DATE SCANNED']))}</span><span>${escapeHtml(rec['SCANNED BY'])}</span><span>${escapeHtml(rec['MODEL'])}</span></div><div class="row mt-2"><div class="col-md-6"><div class="comment-box"><div class="comment-label">ORIGINAL: ${escapeHtml(rec['ORIGINAL CONDITION'])}</div>${origComm}</div></div><div class="col-md-6"><div class="comment-box"><div class="comment-label">CURRENT: ${escapeHtml(rec['CURRENT CONDITION'])}</div>${currComm}</div></div></div></div></div>`; 
+    }); 
+    resultDiv.innerHTML = cards; 
+}
+
+function updateSuggestions(val) { const term = val.trim().toUpperCase(); const container = document.getElementById('suggestionsContainer'); if(term.length<2){ container.innerHTML=''; return; } const matches = allSerialsList.filter(s=>s.toUpperCase().includes(term)).slice(0,12); container.innerHTML = matches.map(s=>`<span class="badge bg-light text-dark p-2 me-1" style="cursor:pointer" onclick="document.getElementById('modalSerialInput').value='${escapeHtml(s)}'; performModalSerialSearch();">${escapeHtml(s)}</span>`).join(''); }
+function clearSearchModal() { document.getElementById('modalSerialInput').value=''; document.getElementById('suggestionsContainer').innerHTML=''; document.getElementById('modalSearchResultArea').innerHTML='<div class="text-muted">Enter serial</div>'; }
+
+function exportToExcel(type) {
+    if(type==='detail' && currentValidTransitions.length){ const ws = XLSX.utils.json_to_sheet(currentValidTransitions.map(r=>({ Serial:r.serial, Technician:r.tech, Date:formatYMD(parseDate(r.dateScanned)), Model:r.model, Manufacturer:r.manufacturer, OriginalCondition:r.orig, CurrentCondition:r.curr, Category:r.category, OriginalComments:r.origComments, CurrentComments:r.currComments }))); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Details"); XLSX.writeFile(wb, `Repair_Details_${new Date().toISOString().split('T')[0]}.xlsx`); }
+    else if(type==='targets' && currentTechRows.length){ const ws = XLSX.utils.json_to_sheet(currentTechRows); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Targets"); XLSX.writeFile(wb, `Tech_Targets_${new Date().toISOString().split('T')[0]}.xlsx`); }
+    else alert("No data");
+}
+
+function exportConditionsToExcel() {
+    const headerRow = document.getElementById('conditionsTableHeader'); const tbody = document.getElementById('conditionsTableBody');
+    if (!tbody || tbody.querySelectorAll('tr').length === 0 || tbody.querySelector('td[colspan]')) { alert("No data to export."); return; }
+    const headers = []; headerRow.querySelectorAll('th').forEach(th => { const fullTitle = th.getAttribute('title'); const headerText = (fullTitle || th.innerText.replace('…', '').trim()).replace(/[\n\r]/g, ' '); headers.push(headerText); });
+    const rows = []; tbody.querySelectorAll('tr').forEach(tr => { const cells = tr.querySelectorAll('td'); if (cells.length === headers.length) { const row = {}; cells.forEach((cell, idx) => { let cellValue = cell.innerText.trim(); if (headers[idx] === 'Validation') cellValue = cell.querySelector('.fa-check-circle') ? 'Valid' : cell.querySelector('.fa-exclamation-triangle') ? 'Invalid' : cellValue; const numericValue = parseFloat(cellValue); if (!isNaN(numericValue) && cellValue.match(/^-?\d+(\.\d+)?$/)) row[headers[idx]] = numericValue; else row[headers[idx]] = cellValue; }); rows.push(row); } });
+    if (rows.length === 0) { alert("No data to export."); return; }
+    const ws = XLSX.utils.json_to_sheet(rows); const colWidths = headers.map(h => { const maxDataLen = rows.reduce((max, row) => { const val = row[h] !== undefined ? String(row[h]).length : 0; return Math.max(max, val); }, h.length); return { wch: Math.min(Math.max(maxDataLen + 2, 10), 30) }; }); ws['!cols'] = colWidths; ws['!freeze'] = { xSplit: 1, ySplit: 1 };
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Condition Breakdown");
+    const today = new Date(); const summaryData = [{ Field: 'Report', Value: 'Condition Breakdown by Technician' }, { Field: 'Export Date', Value: today.toLocaleString() }, { Field: 'Start Date', Value: document.getElementById('startDate').value || 'N/A' }, { Field: 'End Date', Value: document.getElementById('endDate').value || 'N/A' }, { Field: 'Technician Filter', Value: document.getElementById('techFilter').value }, { Field: 'Total Technicians', Value: rows.length }, { Field: 'Total Columns', Value: headers.length }];
+    const wsSummary = XLSX.utils.json_to_sheet(summaryData); wsSummary['!cols'] = [{ wch: 25 }, { wch: 40 }]; XLSX.utils.book_append_sheet(wb, wsSummary, "Export Info");
+    const filename = `Condition_Breakdown_${today.toISOString().split('T')[0]}.xlsx`; XLSX.writeFile(wb, filename);
+    const statusEl = document.getElementById('exportStatus'); if (statusEl) { statusEl.classList.add('show'); setTimeout(() => statusEl.classList.remove('show'), 3000); }
+}
+
+function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); }
+function truncate(str,n) { return (str && str.length > n) ? str.substring(0,n-1)+'…' : str; }
+</script>
+</body>
+</html>
